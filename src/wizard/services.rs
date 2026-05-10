@@ -84,7 +84,8 @@ pub fn build_services_from_scans(scans: &[ScanResult]) -> Vec<ServiceEntry> {
             heartbeat_interval_ms: Some(30_000),
             heartbeat_timeout_ms: Some(30_000),
             heartbeat_max_failures: Some(3),
-            heartbeat_enabled: Some(true),
+            // Off by default — see `mux_gen::DAEMON_CONFIG_BANNER` rationale.
+            heartbeat_enabled: Some(false),
         };
 
         out.push(ServiceEntry {
@@ -125,7 +126,8 @@ pub(super) fn append_default_discovered_services(services: &mut Vec<ServiceEntry
                 heartbeat_interval_ms: Some(30_000),
                 heartbeat_timeout_ms: Some(30_000),
                 heartbeat_max_failures: Some(3),
-                heartbeat_enabled: Some(true),
+                // Off by default — see `mux_gen::DAEMON_CONFIG_BANNER` rationale.
+                heartbeat_enabled: Some(false),
             },
             health: HealthStatus::Unknown,
             source: ServiceSource::Default { source },
@@ -221,7 +223,8 @@ pub fn enrich_running_state(services: &mut Vec<ServiceEntry>) {
                     heartbeat_interval_ms: Some(30_000),
                     heartbeat_timeout_ms: Some(30_000),
                     heartbeat_max_failures: Some(3),
-                    heartbeat_enabled: Some(true),
+                    // Off by default — see `mux_gen::DAEMON_CONFIG_BANNER` rationale.
+                    heartbeat_enabled: Some(false),
                 },
                 health: HealthStatus::Healthy,
                 source: ServiceSource::DetectedRunning,

@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **`heartbeat_enabled` now defaults to `false`** in every config generator
+  (`scan::build_manifest`, `mux_gen::build_mux_outputs` /
+  `build_per_client_outputs`, `wizard::services::build_services_from_scans`,
+  default-discovery, and ps-scan orphans) and in the resolver fallback
+  (`config::resolve_params`). MCP protocol (spec 2025-11-25) does not require
+  ping/pong probes; most upstream MCP servers (npx wrappers, custom Rust
+  stdio binaries) do not respond to rust-mux heartbeats, so a global `true`
+  forced the daemon into restart loops (heartbeat timeout 30s × 3 max
+  failures → endless restart, services never stabilised). Operators flip
+  `heartbeat_enabled = true` per-service for backends that explicitly
+  support the rust-mux probe.
+- Generated `~/.config/mux/config.toml` (both the wizard's safe path and
+  `rust-mux scan --manifest --manifest-format toml`) now carries an
+  operator-facing banner explaining the heartbeat policy, so the gotcha is
+  discoverable without grepping the source tree.
+- `--heartbeat-enabled` CLI help text updated to advertise the new default.
+
+### Tests
+- New `scan::tests::build_manifest_disables_heartbeat_by_default` and
+  `mux_gen::tests::daemon_config_disables_heartbeat_by_default` lock the
+  defaults plus the rationale banner.
+
 ## [0.4.1] - 2026-05-06
 
 ### Added

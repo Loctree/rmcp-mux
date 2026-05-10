@@ -128,7 +128,8 @@ struct Cli {
     /// Max consecutive heartbeat failures before restart (default: 3).
     #[arg(long)]
     heartbeat_max_failures: Option<u32>,
-    /// Enable/disable heartbeat monitoring (default: true).
+    /// Enable/disable heartbeat monitoring (default: false; opt-in per-service
+    /// because most MCP servers do not implement rust-mux ping/pong probes).
     #[arg(long)]
     heartbeat_enabled: Option<bool>,
 }

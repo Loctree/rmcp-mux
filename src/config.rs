@@ -454,10 +454,13 @@ pub fn resolve_params(cli: &dyn CliOptions, config: Option<&Config>) -> Result<R
                 .and_then(|(_, c)| c.heartbeat_max_failures)
         })
         .unwrap_or(3);
+    // Default `false`: MCP protocol does not mandate ping/pong; most upstream
+    // servers do not implement rust-mux heartbeats and would be killed in a
+    // restart loop. Operators opt in per-service via CLI flag or config.
     let heartbeat_enabled = cli
         .heartbeat_enabled()
         .or_else(|| service_cfg.as_ref().and_then(|(_, c)| c.heartbeat_enabled))
-        .unwrap_or(true);
+        .unwrap_or(false);
 
     Ok(ResolvedParams {
         socket,
