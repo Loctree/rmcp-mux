@@ -732,7 +732,7 @@ mod tests {
                 heartbeat_interval_ms: Some(30_000),
                 heartbeat_timeout_ms: Some(30_000),
                 heartbeat_max_failures: Some(3),
-                heartbeat_enabled: Some(true),
+                heartbeat_enabled: Some(false),
             },
             health: HealthStatus::Unknown,
             source,

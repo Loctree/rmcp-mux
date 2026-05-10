@@ -117,6 +117,10 @@ pub use multi_tui::run_multi_tui;
 
 /// Configuration for embedding rust_mux in your application.
 ///
+/// Heartbeat monitoring is opt-in for MCP servers that support rust-mux
+/// ping/pong probes. The CLI, scan, wizard, and library defaults all keep
+/// heartbeats disabled unless explicitly enabled.
+///
 /// Use the builder pattern to configure the mux server:
 ///
 /// ```rust
@@ -166,7 +170,7 @@ pub struct MuxConfig {
     pub heartbeat_timeout: Duration,
     /// Max consecutive heartbeat failures before restart (default: 3)
     pub heartbeat_max_failures: u32,
-    /// Whether heartbeat monitoring is enabled (default: true)
+    /// Whether heartbeat monitoring is enabled (default: false)
     pub heartbeat_enabled: bool,
 }
 
@@ -196,7 +200,7 @@ impl MuxConfig {
             heartbeat_interval: Duration::from_secs(30),
             heartbeat_timeout: Duration::from_secs(30),
             heartbeat_max_failures: 3,
-            heartbeat_enabled: true,
+            heartbeat_enabled: false,
         }
     }
 
@@ -320,6 +324,12 @@ impl MuxConfig {
     }
 }
 
+impl Default for MuxConfig {
+    fn default() -> Self {
+        Self::new("/tmp/rust-mux.sock", "npx")
+    }
+}
+
 impl From<MuxConfig> for ResolvedParams {
     fn from(cfg: MuxConfig) -> Self {
         let service_name = cfg.service_name();
@@ -340,10 +350,10 @@ impl From<MuxConfig> for ResolvedParams {
             restart_backoff_max: cfg.restart_backoff_max,
             max_restarts: cfg.max_restarts,
             status_file: cfg.status_file,
-            heartbeat_interval: Duration::from_secs(30),
-            heartbeat_timeout: Duration::from_secs(30),
-            heartbeat_max_failures: 3,
-            heartbeat_enabled: true,
+            heartbeat_interval: cfg.heartbeat_interval,
+            heartbeat_timeout: cfg.heartbeat_timeout,
+            heartbeat_max_failures: cfg.heartbeat_max_failures,
+            heartbeat_enabled: cfg.heartbeat_enabled,
         }
     }
 }
@@ -484,6 +494,20 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Library name
 pub const NAME: &str = env!("CARGO_PKG_NAME");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mux_config_default_heartbeat_disabled() {
+        let config = MuxConfig::default();
+        assert!(!config.heartbeat_enabled);
+
+        let params: ResolvedParams = config.into();
+        assert!(!params.heartbeat_enabled);
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Multi-server runtime
