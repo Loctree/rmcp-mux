@@ -201,16 +201,8 @@ fn handle_step3(app: &mut AppState, key: KeyEvent) -> Result<bool> {
     let idx = order.iter().position(|s| *s == app.strategy).unwrap_or(0);
     match key.code {
         KeyCode::Char('q') => return Ok(true),
-        KeyCode::Up => {
-            if idx > 0 {
-                app.strategy = order[idx - 1];
-            }
-        }
-        KeyCode::Down => {
-            if idx + 1 < order.len() {
-                app.strategy = order[idx + 1];
-            }
-        }
+        KeyCode::Up if idx > 0 => app.strategy = order[idx - 1],
+        KeyCode::Down if idx + 1 < order.len() => app.strategy = order[idx + 1],
         KeyCode::Char('1') => app.strategy = Strategy::Unified,
         KeyCode::Char('2') => app.strategy = Strategy::PerClient,
         KeyCode::Char('3') => app.strategy = Strategy::AutoRewire,
@@ -249,16 +241,8 @@ fn handle_step4(app: &mut AppState, key: KeyEvent) -> Result<bool> {
         .unwrap_or(0);
     match key.code {
         KeyCode::Char('q') => return Ok(true),
-        KeyCode::Up => {
-            if idx > 0 {
-                app.summary_action = order[idx - 1];
-            }
-        }
-        KeyCode::Down => {
-            if idx + 1 < order.len() {
-                app.summary_action = order[idx + 1];
-            }
-        }
+        KeyCode::Up if idx > 0 => app.summary_action = order[idx - 1],
+        KeyCode::Down if idx + 1 < order.len() => app.summary_action = order[idx + 1],
         KeyCode::Char('p') | KeyCode::Left => {
             app.wizard_step = WizardStep::StrategyChoice;
             update_step3_message(app);
@@ -304,16 +288,8 @@ fn handle_step5(app: &mut AppState, key: KeyEvent) -> Result<bool> {
         .unwrap_or(0);
     match key.code {
         KeyCode::Char('q') => return Ok(true),
-        KeyCode::Up => {
-            if idx > 0 {
-                app.tray_choice = order[idx - 1];
-            }
-        }
-        KeyCode::Down => {
-            if idx + 1 < order.len() {
-                app.tray_choice = order[idx + 1];
-            }
-        }
+        KeyCode::Up if idx > 0 => app.tray_choice = order[idx - 1],
+        KeyCode::Down if idx + 1 < order.len() => app.tray_choice = order[idx + 1],
         KeyCode::Enter => match app.tray_choice {
             TrayChoice::StartNow => {
                 app.pending_action = Some(PendingAction::StartTrayDaemon);
