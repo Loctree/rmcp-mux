@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] - 2026-05-10
+
+### Migration
+
+If your code constructs `MuxConfig` via `Default::default()` or
+`MuxConfig::new(...)` and relied on heartbeat being on, set it explicitly:
+`MuxConfig { heartbeat_enabled: true, ..Default::default() }` or call
+`.with_heartbeat_enabled(true)`. CLI, scan, wizard, and generated config
+already defaulted false in 0.4.2.
+
+### Fixed
+- Library heartbeat defaults now match the CLI/config generator contract:
+  `MuxConfig::new`, `MuxConfig::default`, and `From<MuxConfig> for
+  ResolvedParams` keep `heartbeat_enabled = false` unless explicitly enabled.
+- `rust-mux dashboard --config <path>` now derives the daemon status socket as
+  `<config_dir>/daemon.sock`, matching `daemon-status --config <path>`.
+- `make daemon-status CONFIG=...` and `make dashboard CONFIG=...` now use the
+  installed CLI with the configured daemon socket path.
+- Generated daemon/client config files, host rewrites, and `.bak` backups now
+  use one shared atomic sibling-temp write helper instead of direct writes.
+
+### Changed
+- `status` help text now states that it inspects host config files rather than
+  daemon IPC state.
+- `cargo run` now resolves to the real `rust-mux` binary via `default-run`.
+
+### Removed
+- `src/main.rs` stale root binary entrypoint; Cargo already pointed the shipped
+  command surface at `src/bin/rust-mux.rs` and `src/bin/rust-mux-proxy.rs`.
+
 ## [0.4.2] - 2026-05-10
 
 ### Fixed

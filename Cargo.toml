@@ -1,6 +1,6 @@
 [package]
 name = "rust-mux"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2024"
 default-run = "rust-mux"
 authors = ["Maciej Gad <void@div0.space>", "Monika Szymanska <hello@vetcoders.io>"]
