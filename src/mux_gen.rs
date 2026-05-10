@@ -24,6 +24,7 @@ use anyhow::{Context, Result};
 use serde::Serialize;
 
 use crate::config::{Config, ServerConfig, expand_path};
+use crate::runtime::atomic_write;
 use crate::scan::{
     ConflictReport, HostFile, HostFormat, HostKind, HostService, MergeOutcome, ScanResult,
 };
@@ -131,11 +132,11 @@ pub fn write_mux_outputs(outputs: &MuxOutputs) -> Result<MuxFiles> {
         )
     })?;
 
-    fs::write(&outputs.config_toml_path, &outputs.config_toml)
+    atomic_write(&outputs.config_toml_path, outputs.config_toml.as_bytes())
         .with_context(|| format!("failed to write {}", outputs.config_toml_path.display()))?;
-    fs::write(&outputs.mcp_json_path, &outputs.mcp_json)
+    atomic_write(&outputs.mcp_json_path, outputs.mcp_json.as_bytes())
         .with_context(|| format!("failed to write {}", outputs.mcp_json_path.display()))?;
-    fs::write(&outputs.mcp_toml_path, &outputs.mcp_toml)
+    atomic_write(&outputs.mcp_toml_path, outputs.mcp_toml.as_bytes())
         .with_context(|| format!("failed to write {}", outputs.mcp_toml_path.display()))?;
 
     Ok(MuxFiles {
@@ -479,12 +480,12 @@ pub fn write_per_client_outputs(outputs: &PerClientOutputs) -> Result<Vec<PathBu
         )
     })?;
 
-    fs::write(&outputs.config_toml_path, &outputs.config_toml)
+    atomic_write(&outputs.config_toml_path, outputs.config_toml.as_bytes())
         .with_context(|| format!("failed to write {}", outputs.config_toml_path.display()))?;
 
     let mut written = vec![outputs.config_toml_path.clone()];
     for client in &outputs.clients {
-        fs::write(&client.path, &client.contents)
+        atomic_write(&client.path, client.contents.as_bytes())
             .with_context(|| format!("failed to write {}", client.path.display()))?;
         written.push(client.path.clone());
     }

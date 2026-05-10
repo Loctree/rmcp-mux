@@ -34,7 +34,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result, anyhow};
 use serde::Serialize;
 
-use crate::config::{safe_copy_file, safe_read_to_string};
+use crate::config::safe_read_to_string;
+use crate::runtime::atomic_write;
 use crate::scan::{
     ConfigSchema, HostFile, HostFormat, HostKind, HostService, ScanResult, scan_host_file,
 };
@@ -449,10 +450,12 @@ fn write_with_timestamped_backup(path: &Path, contents: &str) -> Result<PathBuf>
     }
 
     if path.exists() {
-        safe_copy_file(path, &backup)
+        let current = safe_read_to_string(path)?;
+        atomic_write(&backup, current.as_bytes())
             .with_context(|| format!("failed to create backup {}", backup.display()))?;
     }
-    fs::write(path, contents).with_context(|| format!("failed to write {}", path.display()))?;
+    atomic_write(path, contents.as_bytes())
+        .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(backup)
 }
 
@@ -656,7 +659,7 @@ mod tests {
 
     fn write_text(path: &Path, body: &str) {
         fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
-        fs::write(path, body).expect("write");
+        atomic_write(path, body.as_bytes()).expect("write");
     }
 
     fn json_source(path: PathBuf, kind: HostKind) -> HostFile {

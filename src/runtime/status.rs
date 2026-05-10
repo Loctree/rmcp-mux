@@ -5,6 +5,7 @@
 //! - Unix socket endpoint for querying all managed servers
 
 use std::collections::HashMap;
+use std::fs as std_fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -47,6 +48,34 @@ fn unique_tmp_path(target: &Path) -> PathBuf {
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     parent.join(format!(".{stem}.{pid}.{counter}.{nanos}.tmp"))
+}
+
+/// Atomically write a user-visible file via a unique sibling tmp file.
+///
+/// The target is replaced only after the full contents land in the tmp path.
+/// If the final rename fails, the previous target remains in place and the
+/// tmp file is removed on a best-effort basis.
+pub(crate) fn atomic_write(target: &Path, content: &[u8]) -> std::io::Result<()> {
+    atomic_write_with_rename(target, content, |tmp, target| std_fs::rename(tmp, target))
+}
+
+fn atomic_write_with_rename<F>(target: &Path, content: &[u8], rename: F) -> std::io::Result<()>
+where
+    F: FnOnce(&Path, &Path) -> std::io::Result<()>,
+{
+    if let Some(parent) = target.parent() {
+        std_fs::create_dir_all(parent)?;
+    }
+    let tmp = unique_tmp_path(target);
+    if let Err(e) = std_fs::write(&tmp, content) {
+        let _ = std_fs::remove_file(&tmp);
+        return Err(e);
+    }
+    if let Err(e) = rename(&tmp, target) {
+        let _ = std_fs::remove_file(&tmp);
+        return Err(e);
+    }
+    Ok(())
 }
 
 /// Write a status snapshot to a file atomically.
@@ -459,5 +488,40 @@ mod tests {
         let cfg = std::path::Path::new("config.toml");
         let sock = status_socket_for_config(cfg);
         assert_eq!(sock, std::path::PathBuf::from(DEFAULT_STATUS_SOCKET));
+    }
+
+    #[test]
+    fn atomic_write_replaces_target() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let target = dir.path().join("config.toml");
+        std::fs::write(&target, b"old").expect("seed target");
+
+        atomic_write(&target, b"new").expect("atomic write");
+
+        assert_eq!(std::fs::read(&target).expect("read target"), b"new");
+    }
+
+    #[test]
+    fn atomic_write_rename_failure_keeps_target_and_cleans_tmp() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let target = dir.path().join("config.toml");
+        std::fs::write(&target, b"old").expect("seed target");
+
+        let err = atomic_write_with_rename(&target, b"new", |_tmp, _target| {
+            Err(std::io::Error::other("forced rename failure"))
+        })
+        .expect_err("rename failure should surface");
+
+        assert_eq!(err.kind(), std::io::ErrorKind::Other);
+        assert_eq!(std::fs::read(&target).expect("read target"), b"old");
+        let tmp_files: Vec<_> = std::fs::read_dir(dir.path())
+            .expect("read dir")
+            .filter_map(|entry| {
+                let entry = entry.expect("dir entry");
+                let name = entry.file_name().to_string_lossy().into_owned();
+                name.ends_with(".tmp").then_some(name)
+            })
+            .collect();
+        assert!(tmp_files.is_empty(), "orphan tmp files: {tmp_files:?}");
     }
 }

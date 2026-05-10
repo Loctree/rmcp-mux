@@ -7,7 +7,8 @@ use anyhow::{Context, Result, anyhow};
 use clap::Args;
 use serde::{Deserialize, Serialize};
 
-use crate::config::{Config, ServerConfig, expand_path, safe_copy_file, safe_read_to_string};
+use crate::config::{Config, ServerConfig, expand_path, safe_read_to_string};
+use crate::runtime::atomic_write;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLI arg structs (CLI surface)
@@ -931,10 +932,12 @@ pub fn write_with_backup(path: &Path, contents: &str, dry_run: bool) -> Result<O
     }
     let backup = path.with_extension("bak");
     if path.exists() {
-        safe_copy_file(path, &backup)
+        let current = safe_read_to_string(path)?;
+        atomic_write(&backup, current.as_bytes())
             .with_context(|| format!("failed to create backup {}", backup.display()))?;
     }
-    fs::write(path, contents).with_context(|| format!("failed to write {}", path.display()))?;
+    atomic_write(path, contents.as_bytes())
+        .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(Some(backup))
 }
 
@@ -1132,7 +1135,7 @@ mod tests {
 
     fn write_text(path: &Path, body: &str) {
         fs::create_dir_all(path.parent().expect("parent dir")).expect("create parent");
-        fs::write(path, body).expect("write file");
+        atomic_write(path, body.as_bytes()).expect("write file");
     }
 
     fn json_host(path: PathBuf, kind: HostKind, schema: ConfigSchema) -> HostFile {
