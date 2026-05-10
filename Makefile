@@ -91,10 +91,10 @@ health:
 	cargo run --bin rust-mux -- health --config "$(CONFIG)" --service "$(SERVICE)"
 
 daemon-status:
-	cargo run --bin rust-mux -- daemon-status
+	rust-mux daemon-status --config "$(CONFIG)"
 
-dashboard: status-file-init
-	cargo run --features tray --bin rust-mux -- dashboard --status-file "$(STATUS_FILE)"
+dashboard:
+	rust-mux dashboard --config "$(CONFIG)"
 
 status-file-init:
 	mkdir -p "$(dir $(STATUS_FILE))"

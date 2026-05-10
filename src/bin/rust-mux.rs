@@ -45,7 +45,7 @@ enum CliCommand {
     Rewire(RewireArgs),
     /// Proxy STDIO to a mux socket (for MCP hosts).
     Proxy(ProxyArgs),
-    /// Check whether host configs are already pointed at the mux proxy.
+    /// Inspect host config files; this does not query daemon IPC state.
     Status(StatusArgs),
     /// Simple health check: resolve config and try connecting to the mux socket.
     Health(Box<HealthArgs>),
@@ -166,9 +166,15 @@ struct DaemonStatusArgs {
 #[cfg(feature = "tray")]
 #[derive(Args, Debug, Clone)]
 struct DashboardArgs {
-    /// Status socket path (default: /tmp/rust-mux.status.sock)
+    /// Status socket path. Defaults to the per-config socket when `--config`
+    /// is given (`<config_dir>/daemon.sock`); otherwise falls back to
+    /// `/tmp/rust-mux.status.sock` for backwards compatibility.
     #[arg(long)]
     socket: Option<std::path::PathBuf>,
+    /// Config file used when the daemon was started with `rust-mux --config`.
+    /// Used to derive the status socket path for the tray dashboard.
+    #[arg(long)]
+    config: Option<std::path::PathBuf>,
 }
 
 fn main() -> Result<()> {
@@ -376,16 +382,26 @@ fn run_dashboard(args: DashboardArgs) -> Result<()> {
     use tokio_util::sync::CancellationToken;
 
     let shutdown = CancellationToken::new();
+    let socket = resolve_dashboard_status_socket(args.socket.as_deref(), args.config.as_deref());
 
     println!("Starting rust-mux dashboard...");
+    println!("Using daemon status socket: {}", socket.display());
     println!("Click 'Quit Dashboard' in tray menu to exit");
 
     let icon = rust_mux::tray::find_tray_icon();
     // Run on main thread - required for macOS tray menu creation
-    rust_mux::tray_dashboard::run_tray_dashboard(shutdown, icon, args.socket);
+    rust_mux::tray_dashboard::run_tray_dashboard(shutdown, icon, Some(socket));
 
     println!("Dashboard closed");
     Ok(())
+}
+
+#[cfg(feature = "tray")]
+fn resolve_dashboard_status_socket(
+    socket: Option<&std::path::Path>,
+    config: Option<&std::path::Path>,
+) -> std::path::PathBuf {
+    resolve_daemon_status_socket(socket, config)
 }
 
 // Implement CliOptions trait for the Cli struct
@@ -516,5 +532,31 @@ mod tests {
             names.contains(&"daemon-status"),
             "daemon-status subcommand missing from clap; got {names:?}"
         );
+    }
+
+    #[cfg(feature = "tray")]
+    #[test]
+    fn dashboard_config_flag() {
+        let cli = RootCli::try_parse_from([
+            "rust-mux",
+            "dashboard",
+            "--config",
+            "/tmp/example/config.toml",
+        ])
+        .expect("dashboard must accept --config");
+        match cli.command {
+            Some(CliCommand::Dashboard(args)) => {
+                assert_eq!(
+                    args.config,
+                    Some(std::path::PathBuf::from("/tmp/example/config.toml"))
+                );
+                assert!(args.socket.is_none());
+                assert_eq!(
+                    resolve_dashboard_status_socket(None, args.config.as_deref()),
+                    std::path::PathBuf::from("/tmp/example/daemon.sock")
+                );
+            }
+            other => panic!("expected Dashboard subcommand, got {:?}", other),
+        }
     }
 }
