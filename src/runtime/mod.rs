@@ -33,11 +33,11 @@ pub use heartbeat::{
     spawn_heartbeat_inspector,
 };
 pub use proxy::run_proxy;
-pub(crate) use status::{atomic_write, spawn_status_writer};
 pub use status::{
     DEFAULT_STATUS_SOCKET, DaemonStatus, ServerRef, StatusState, print_status_table, query_status,
     run_status_listener, status_socket_for_config,
 };
+pub(crate) use status::{atomic_write, spawn_status_writer};
 pub use types::MAX_PENDING;
 pub use types::MAX_QUEUE;
 
