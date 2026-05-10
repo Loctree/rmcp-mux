@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Status-file atomic-replace WARN spam eliminated.** `runtime::status::write_status_file`
+  now writes through a unique sibling tmp path (`.<name>.<pid>.<n>.<nanos>.tmp`)
+  instead of the shared `<name>.tmp`. With multiple `spawn_status_writer`
+  instances pointing at the same target (default multi-service mode), the old
+  shared-tmp approach raced its own peers — losing the rename ~6× per
+  heartbeat tick per service and flooding the daemon log with `failed to
+  atomically replace status` warnings. Transient `NotFound`/`AlreadyExists`
+  rename races are now logged at `debug` level; only genuine I/O failures
+  (permission, disk-full) stay at `warn`.
+- **`rust-mux daemon-status --config <path>` now works.** Previously clap
+  rejected the flag with `unexpected argument '--config' found`; even when
+  the operator manually passed `--socket`, the multi-service daemon was
+  not actually binding the status listener (the doc-comment claim on
+  `run_mux_multi` was aspirational). Resolution:
+  - `DaemonStatusArgs` gained `--config <PATH>`. When set, the status
+    socket is derived deterministically as `<config_dir>/daemon.sock`
+    via the new `runtime::status_socket_for_config` helper.
+  - `run_mux_multi` now actually binds a `run_status_listener` against a
+    shared `StatusState` registry. The new `run_mux_multi_with_status_socket`
+    entry point lets the binary thread the per-config socket through.
+  - The CLI binary computes the per-config socket from `--config <path>`
+    on daemon startup, so `daemon-status --config <same>` always finds
+    the listener without flag duplication.
+  - Explicit `--socket` still overrides; missing both flags falls back
+    to the legacy `/tmp/rust-mux.status.sock` for backwards-compat.
+- Removed an accidental `print_status_table` placeholder in `lib.rs` that
+  was shadowing the real `runtime::print_status_table` re-export. The
+  `daemon-status` table output (non-`--json`) now actually renders.
 - **`heartbeat_enabled` now defaults to `false`** in every config generator
   (`scan::build_manifest`, `mux_gen::build_mux_outputs` /
   `build_per_client_outputs`, `wizard::services::build_services_from_scans`,

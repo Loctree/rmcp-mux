@@ -20,8 +20,8 @@ use rust_mux::scan::{
 };
 use rust_mux::wizard::WizardArgs;
 use rust_mux::{
-    DEFAULT_STATUS_SOCKET, print_status_table, query_status, restart_single, run_mux_multi,
-    status_all,
+    DEFAULT_STATUS_SOCKET, print_status_table, query_status, restart_single,
+    run_mux_multi_with_status_socket, status_all, status_socket_for_config,
 };
 
 /// Robust MCP mux: single MCP server child, many clients via UNIX socket,
@@ -128,8 +128,7 @@ struct Cli {
     /// Max consecutive heartbeat failures before restart (default: 3).
     #[arg(long)]
     heartbeat_max_failures: Option<u32>,
-    /// Enable/disable heartbeat monitoring (default: false; opt-in per-service
-    /// because most MCP servers do not implement rust-mux ping/pong probes).
+    /// Enable/disable heartbeat monitoring (default: true).
     #[arg(long)]
     heartbeat_enabled: Option<bool>,
 }
@@ -149,9 +148,16 @@ struct HealthArgs {
 
 #[derive(Args, Debug, Clone)]
 struct DaemonStatusArgs {
-    /// Status socket path (default: /tmp/rust-mux.status.sock)
+    /// Status socket path. Defaults to the per-config socket when `--config`
+    /// is given (`<config_dir>/daemon.sock`); otherwise falls back to
+    /// `/tmp/rust-mux.status.sock` for backwards compatibility.
     #[arg(long)]
     socket: Option<std::path::PathBuf>,
+    /// Config file used when the daemon was started with `rust-mux --config`.
+    /// Used to derive the status socket path so `daemon-status` can find a
+    /// daemon that does not bind the legacy default socket.
+    #[arg(long)]
+    config: Option<std::path::PathBuf>,
     /// Output as JSON instead of table
     #[arg(long)]
     json: bool,
@@ -276,8 +282,14 @@ async fn async_main(cli: RootCli) -> Result<()> {
             "starting mux in multi-service mode"
         );
 
+        // When the operator passed `--config <path>`, bind the daemon
+        // status listener at the per-config sibling socket so
+        // `rust-mux daemon-status --config <same>` can find it without
+        // needing the legacy `/tmp/rust-mux.status.sock`.
+        let status_socket = cli.config.as_deref().map(status_socket_for_config);
+
         let shutdown = CancellationToken::new();
-        run_mux_multi(params_list, shutdown).await
+        run_mux_multi_with_status_socket(params_list, status_socket, shutdown).await
     } else {
         // Single service mode (legacy behavior)
         let params = resolve_params(&cli, config.as_ref())?;
@@ -319,9 +331,7 @@ async fn run_health(cli: Cli) -> Result<()> {
 }
 
 async fn run_daemon_status(args: DaemonStatusArgs) -> Result<()> {
-    let socket = args
-        .socket
-        .unwrap_or_else(|| std::path::PathBuf::from(DEFAULT_STATUS_SOCKET));
+    let socket = resolve_daemon_status_socket(args.socket.as_deref(), args.config.as_deref());
 
     let status = query_status(&socket).await.map_err(|e| {
         anyhow!(
@@ -338,6 +348,27 @@ async fn run_daemon_status(args: DaemonStatusArgs) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Pick the status socket path for `daemon-status`.
+///
+/// Resolution order:
+/// 1. Explicit `--socket <path>` always wins.
+/// 2. `--config <path>` derives a deterministic sibling `daemon.sock`,
+///    matching the path the daemon binds when started with the same config.
+/// 3. Fallback to [`DEFAULT_STATUS_SOCKET`] for backwards-compat with
+///    daemons that pre-date the config-aware socket.
+fn resolve_daemon_status_socket(
+    socket: Option<&std::path::Path>,
+    config: Option<&std::path::Path>,
+) -> std::path::PathBuf {
+    if let Some(s) = socket {
+        return s.to_path_buf();
+    }
+    if let Some(cfg) = config {
+        return status_socket_for_config(cfg);
+    }
+    std::path::PathBuf::from(DEFAULT_STATUS_SOCKET)
 }
 
 #[cfg(feature = "tray")]
@@ -421,5 +452,69 @@ impl CliOptions for Cli {
     }
     fn except(&self) -> Option<Vec<String>> {
         self.except.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn daemon_status_accepts_config_flag() {
+        // Regression: prior to 0.4.2 `daemon-status --config <path>` exited
+        // with `error: unexpected argument '--config' found`.
+        let cli = RootCli::try_parse_from([
+            "rust-mux",
+            "daemon-status",
+            "--config",
+            "/tmp/example/config.toml",
+        ])
+        .expect("daemon-status must accept --config");
+        match cli.command {
+            Some(CliCommand::DaemonStatus(args)) => {
+                assert_eq!(
+                    args.config,
+                    Some(std::path::PathBuf::from("/tmp/example/config.toml"))
+                );
+                assert!(args.socket.is_none());
+            }
+            other => panic!("expected DaemonStatus subcommand, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn daemon_status_resolver_prefers_explicit_socket() {
+        let socket = std::path::PathBuf::from("/run/explicit.sock");
+        let config = std::path::PathBuf::from("/etc/mux/config.toml");
+        let resolved = resolve_daemon_status_socket(Some(&socket), Some(&config));
+        assert_eq!(resolved, socket);
+    }
+
+    #[test]
+    fn daemon_status_resolver_uses_config_sibling_socket() {
+        let config = std::path::PathBuf::from("/Users/me/.config/mux/config.toml");
+        let resolved = resolve_daemon_status_socket(None, Some(&config));
+        assert_eq!(
+            resolved,
+            std::path::PathBuf::from("/Users/me/.config/mux/daemon.sock")
+        );
+    }
+
+    #[test]
+    fn daemon_status_resolver_falls_back_to_default() {
+        let resolved = resolve_daemon_status_socket(None, None);
+        assert_eq!(resolved, std::path::PathBuf::from(DEFAULT_STATUS_SOCKET));
+    }
+
+    #[test]
+    fn cli_command_factory_lists_daemon_status() {
+        // Sanity check that the subcommand survives clap derive expansion.
+        let cmd = RootCli::command();
+        let names: Vec<&str> = cmd.get_subcommands().map(|s| s.get_name()).collect();
+        assert!(
+            names.contains(&"daemon-status"),
+            "daemon-status subcommand missing from clap; got {names:?}"
+        );
     }
 }

@@ -90,12 +90,10 @@ pub mod multi_tui;
 pub use config::{CliOptions, Config, ResolvedParams, ServerConfig, resolve_params_multi};
 pub use runtime::{
     DEFAULT_STATUS_SOCKET, DaemonStatus, HeartbeatConfig, MAX_PENDING, MAX_QUEUE, ServerRef,
-    StatusState, health_check, query_status, run_mux, run_proxy, run_status_listener,
+    StatusState, health_check, print_status_table, query_status, run_mux, run_proxy,
+    run_status_listener, status_socket_for_config,
 };
 pub use state::{MuxState, ServerStatus, StatusSnapshot};
-pub fn print_status_table(_status: &DaemonStatus) {
-    // Placeholder
-}
 
 pub async fn restart_single_service(_config: &Config, _name: &str) -> Result<()> {
     // Placeholder
@@ -493,21 +491,43 @@ pub const NAME: &str = env!("CARGO_PKG_NAME");
 
 /// Run multiple mux servers in a single process.
 ///
-/// Spawns a mux server for each set of parameters and waits for shutdown signal.
-/// Servers with `lazy_start=true` will not spawn until first client connects.
-/// Also starts a status socket listener at [`DEFAULT_STATUS_SOCKET`] for
-/// daemon-wide status monitoring via `rust_mux daemon-status`.
+/// Equivalent to [`run_mux_multi_with_status_socket`] using
+/// [`DEFAULT_STATUS_SOCKET`] as the daemon-wide status endpoint.
 pub async fn run_mux_multi(
     params_list: Vec<ResolvedParams>,
     shutdown: CancellationToken,
 ) -> Result<()> {
+    run_mux_multi_with_status_socket(params_list, None, shutdown).await
+}
+
+/// Run multiple mux servers in a single process and bind a daemon-wide
+/// status socket so `rust-mux daemon-status` can query all managed servers.
+///
+/// `status_socket` overrides the bind path; `None` uses
+/// [`DEFAULT_STATUS_SOCKET`]. Pass [`status_socket_for_config`] of the
+/// active config path to keep `daemon-status --config <same>` working
+/// without manual socket flags.
+///
+/// Servers with `lazy_start=true` will not spawn until first client connects.
+pub async fn run_mux_multi_with_status_socket(
+    params_list: Vec<ResolvedParams>,
+    status_socket: Option<std::path::PathBuf>,
+    shutdown: CancellationToken,
+) -> Result<()> {
     use futures::future::join_all;
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
 
     let mut handles = Vec::with_capacity(params_list.len());
+
+    // Shared status registry so the daemon-status socket can report on
+    // every running mux at once.
+    let status_state = Arc::new(Mutex::new(StatusState::new()));
 
     for params in params_list {
         let service_name = params.service_name.clone();
         let shutdown_clone = shutdown.clone();
+        let status_state_clone = status_state.clone();
 
         tracing::info!(
             service = %service_name,
@@ -515,9 +535,38 @@ pub async fn run_mux_multi(
             "spawning mux server"
         );
 
-        let handle = tokio::spawn(async move { run_mux(params, shutdown_clone).await });
+        let handle = tokio::spawn(async move {
+            runtime::run_mux_internal_with_status(params, shutdown_clone, Some(status_state_clone))
+                .await
+        });
         handles.push((service_name, handle));
     }
+
+    // Bind the status listener so `daemon-status` can connect.
+    let status_socket_path =
+        status_socket.unwrap_or_else(|| std::path::PathBuf::from(DEFAULT_STATUS_SOCKET));
+    let status_listener_state = status_state.clone();
+    let status_listener_shutdown = shutdown.clone();
+    let status_listener_path = status_socket_path.clone();
+    let status_listener_handle = tokio::spawn(async move {
+        if let Err(e) = run_status_listener(
+            &status_listener_path,
+            status_listener_state,
+            status_listener_shutdown,
+        )
+        .await
+        {
+            tracing::warn!(
+                socket = %status_listener_path.display(),
+                error = %e,
+                "daemon status listener exited with error"
+            );
+        }
+    });
+    tracing::info!(
+        socket = %status_socket_path.display(),
+        "daemon status listener bound"
+    );
 
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
@@ -533,6 +582,9 @@ pub async fn run_mux_multi(
             .map(|(name, h)| async move { (name, h.await) }),
     )
     .await;
+
+    // Drain status listener.
+    let _ = status_listener_handle.await;
 
     for (name, result) in results {
         match result {

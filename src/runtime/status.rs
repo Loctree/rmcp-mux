@@ -5,9 +5,11 @@
 //! - Unix socket endpoint for querying all managed servers
 
 use std::collections::HashMap;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Instant;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -21,25 +23,61 @@ use tracing::{debug, error, info, warn};
 use crate::multi::{MultiServerStatus, StatusLevel, format_uptime};
 use crate::state::{MuxState, ServerStatus, StatusSnapshot};
 
+/// Monotonic counter to disambiguate concurrent status-file tmp writes
+/// inside the same process (multiple `spawn_status_writer` instances may
+/// race on the same target path when several services share `status_file`).
+static STATUS_TMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// Build a unique sibling tmp filename for atomic-replace.
+///
+/// Sibling (same parent dir) avoids cross-device rename failures.
+/// Process id + monotonic counter + nanosecond timestamp ensure no two
+/// concurrent writers ever pick the same tmp path, so a slow `fs::write`
+/// can't be silently clobbered by a peer's rename.
+fn unique_tmp_path(target: &Path) -> PathBuf {
+    let parent = target.parent().unwrap_or_else(|| Path::new("."));
+    let stem = target
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "status".to_string());
+    let pid = std::process::id();
+    let counter = STATUS_TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    parent.join(format!(".{stem}.{pid}.{counter}.{nanos}.tmp"))
+}
+
 /// Write a status snapshot to a file atomically.
+///
+/// Uses a unique sibling tmp file (`<parent>/.<name>.<pid>.<n>.<nanos>.tmp`)
+/// to avoid mid-rename collisions when multiple writers share one target.
 pub async fn write_status_file(path: &Path, snapshot: &StatusSnapshot) -> Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .await
             .with_context(|| format!("failed to create status dir {}", parent.display()))?;
     }
-    let tmp = path.with_extension("tmp");
+    let tmp = unique_tmp_path(path);
     let data = serde_json::to_vec_pretty(snapshot)?;
-    fs::write(&tmp, data)
-        .await
-        .with_context(|| format!("failed to write status tmp {}", tmp.display()))?;
-    fs::rename(&tmp, path)
-        .await
-        .with_context(|| format!("failed to atomically replace status {}", path.display()))?;
+    if let Err(e) = fs::write(&tmp, data).await {
+        return Err(e).with_context(|| format!("failed to write status tmp {}", tmp.display()));
+    }
+    if let Err(e) = fs::rename(&tmp, path).await {
+        // Best-effort cleanup of orphan tmp; ignore failure.
+        let _ = fs::remove_file(&tmp).await;
+        return Err(e)
+            .with_context(|| format!("failed to atomically replace status {}", path.display()));
+    }
     Ok(())
 }
 
 /// Spawn a background task that writes status snapshots to a file whenever they change.
+///
+/// Concurrent writers sharing one target path are expected (multi-service mode);
+/// rename races surface as transient `NotFound`/`AlreadyExists` and are demoted
+/// to debug-level. Genuine I/O errors stay at warn-level.
 pub fn spawn_status_writer(
     mut rx: watch::Receiver<StatusSnapshot>,
     path: PathBuf,
@@ -48,15 +86,29 @@ pub fn spawn_status_writer(
         // write initial snapshot
         let mut current = rx.borrow().clone();
         if let Err(e) = write_status_file(&path, &current).await {
-            warn!("failed to write initial status file: {e}");
+            log_status_write_error("initial status file", &e);
         }
         while rx.changed().await.is_ok() {
             current = rx.borrow().clone();
             if let Err(e) = write_status_file(&path, &current).await {
-                warn!("failed to write status file: {e}");
+                log_status_write_error("status file", &e);
             }
         }
     })
+}
+
+/// Demote expected races (NotFound/AlreadyExists) to debug; keep real
+/// errors at warn so operators still see disk-full / permission issues.
+fn log_status_write_error(context: &str, err: &anyhow::Error) {
+    let transient = err
+        .chain()
+        .filter_map(|cause| cause.downcast_ref::<std::io::Error>())
+        .any(|io| matches!(io.kind(), ErrorKind::NotFound | ErrorKind::AlreadyExists));
+    if transient {
+        debug!("transient race writing {context}: {err}");
+    } else {
+        warn!("failed to write {context}: {err}");
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,6 +117,21 @@ pub fn spawn_status_writer(
 
 /// Default status socket path.
 pub const DEFAULT_STATUS_SOCKET: &str = "/tmp/rust-mux.status.sock";
+
+/// Deterministically derive a per-config status socket path.
+///
+/// When `rust-mux --config <path>` is started, the daemon binds the status
+/// listener at `<config_dir>/daemon.sock`. `daemon-status --config <same>`
+/// connects to the same path without needing a separate flag or env var.
+///
+/// Falls back to [`DEFAULT_STATUS_SOCKET`] if the config path has no parent
+/// directory (e.g. a bare filename or root-only path).
+pub fn status_socket_for_config(config_path: &Path) -> PathBuf {
+    match config_path.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent.join("daemon.sock"),
+        _ => PathBuf::from(DEFAULT_STATUS_SOCKET),
+    }
+}
 
 /// Response from the status endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -359,5 +426,38 @@ mod tests {
         let status = state.collect_status().await;
         assert_eq!(status.server_count, 0);
         assert_eq!(status.running_count, 0);
+    }
+
+    #[test]
+    fn unique_tmp_paths_never_collide() {
+        let target = std::path::Path::new("/tmp/rust-mux-status-test/all.json");
+        let a = unique_tmp_path(target);
+        let b = unique_tmp_path(target);
+        assert_ne!(a, b, "concurrent writers must get distinct tmp paths");
+        assert_eq!(a.parent(), target.parent());
+        assert_eq!(b.parent(), target.parent());
+        let a_name = a.file_name().unwrap().to_string_lossy();
+        assert!(
+            a_name.starts_with(".all.json."),
+            "unexpected stem: {a_name}"
+        );
+        assert!(a_name.ends_with(".tmp"), "unexpected suffix: {a_name}");
+    }
+
+    #[test]
+    fn status_socket_for_config_uses_sibling_daemon_sock() {
+        let cfg = std::path::Path::new("/Users/me/.config/mux/config.toml");
+        let sock = status_socket_for_config(cfg);
+        assert_eq!(
+            sock,
+            std::path::PathBuf::from("/Users/me/.config/mux/daemon.sock")
+        );
+    }
+
+    #[test]
+    fn status_socket_for_config_falls_back_when_no_parent() {
+        let cfg = std::path::Path::new("config.toml");
+        let sock = status_socket_for_config(cfg);
+        assert_eq!(sock, std::path::PathBuf::from(DEFAULT_STATUS_SOCKET));
     }
 }
