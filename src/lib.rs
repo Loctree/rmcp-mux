@@ -495,20 +495,6 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Library name
 pub const NAME: &str = env!("CARGO_PKG_NAME");
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn mux_config_default_heartbeat_disabled() {
-        let config = MuxConfig::default();
-        assert!(!config.heartbeat_enabled);
-
-        let params: ResolvedParams = config.into();
-        assert!(!params.heartbeat_enabled);
-    }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Multi-server runtime
 // ─────────────────────────────────────────────────────────────────────────────
@@ -714,4 +700,18 @@ pub async fn restart_single(config: &Config, service_name: &str) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mux_config_default_heartbeat_disabled() {
+        let config = MuxConfig::default();
+        assert!(!config.heartbeat_enabled);
+
+        let params: ResolvedParams = config.into();
+        assert!(!params.heartbeat_enabled);
+    }
 }
