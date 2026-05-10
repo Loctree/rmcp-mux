@@ -465,7 +465,7 @@ mod tests {
         assert_ne!(a, b, "concurrent writers must get distinct tmp paths");
         assert_eq!(a.parent(), target.parent());
         assert_eq!(b.parent(), target.parent());
-        let a_name = a.file_name().unwrap().to_string_lossy();
+        let a_name = a.file_name().expect("tmp path has file name").to_string_lossy();
         assert!(
             a_name.starts_with(".all.json."),
             "unexpected stem: {a_name}"
