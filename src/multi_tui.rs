@@ -150,7 +150,7 @@ fn render(
         // Header
         let header = Paragraph::new(Line::from(vec![
             Span::styled(
-                " rust-mux ",
+                " rmcp-mux ",
                 Style::default()
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD),

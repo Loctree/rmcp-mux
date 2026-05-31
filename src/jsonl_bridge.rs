@@ -194,11 +194,11 @@ fn cursor_path_for(events_path: &Path) -> Result<PathBuf> {
 }
 
 fn runtime_dir() -> Result<PathBuf> {
-    if let Some(path) = std::env::var_os("RUST_MUX_RUNTIME_DIR") {
+    if let Some(path) = std::env::var_os("RMCP_MUX_RUNTIME_DIR") {
         return Ok(PathBuf::from(path));
     }
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
-        .context("HOME is not set and RUST_MUX_RUNTIME_DIR was not provided")?;
-    Ok(home.join(".rust-mux"))
+        .context("HOME is not set and RMCP_MUX_RUNTIME_DIR was not provided")?;
+    Ok(home.join(".rmcp-mux"))
 }

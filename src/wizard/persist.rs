@@ -10,7 +10,7 @@
 //!   `config.toml` still merged across every selected source.
 //! - `run_danger_auto_configure` — Strategy::AutoRewire — backup-first
 //!   preview-first rewrite of the user's existing client configs.
-//! - `start_tray_daemon` — spawns `rust-mux --tray --multi-service` detached
+//! - `start_tray_daemon` — spawns `rmcp-mux --tray --multi-service` detached
 //!   (STEP 5 "Yes — start now").
 
 use std::io::{Write, stdin, stdout};
@@ -173,7 +173,7 @@ pub fn run_unified_generate(app: &AppState) -> Result<String> {
         return Ok("No services selected — nothing generated.".into());
     }
     let mux_dir = default_mux_dir();
-    let outputs = build_mux_outputs(&merge, &mux_dir, "rust-mux-proxy", &[])?;
+    let outputs = build_mux_outputs(&merge, &mux_dir, "rmcp-mux-proxy", &[])?;
 
     if app.dry_run {
         let selected = merge
@@ -198,7 +198,7 @@ pub fn run_unified_generate(app: &AppState) -> Result<String> {
 
     let mut summary = String::new();
     summary.push_str(&format!(
-        "Wrote rust-mux config under {}:\n",
+        "Wrote rmcp-mux config under {}:\n",
         outputs.mux_dir.display()
     ));
     summary.push_str(&format!(
@@ -215,7 +215,7 @@ pub fn run_unified_generate(app: &AppState) -> Result<String> {
     ));
     summary.push('\n');
     summary.push_str(&format!(
-        "Start the mux:\n  rust-mux --config {}\n\n",
+        "Start the mux:\n  rmcp-mux --config {}\n\n",
         outputs.config_toml_path.display()
     ));
     summary.push_str("Use it from your AI clients:\n");
@@ -246,7 +246,7 @@ pub fn run_per_client_generate(app: &AppState) -> Result<String> {
         return Ok("No selected services parsed cleanly — nothing generated.".into());
     }
     let mux_dir = default_mux_dir();
-    let outputs = build_per_client_outputs(&scans, &mux_dir, "rust-mux-proxy", &[])?;
+    let outputs = build_per_client_outputs(&scans, &mux_dir, "rmcp-mux-proxy", &[])?;
 
     if app.dry_run {
         let mut s = format!(
@@ -271,7 +271,7 @@ pub fn run_per_client_generate(app: &AppState) -> Result<String> {
 
     let mut summary = String::new();
     summary.push_str(&format!(
-        "Wrote rust-mux per-client configs under {}:\n",
+        "Wrote rmcp-mux per-client configs under {}:\n",
         outputs.mux_dir.display()
     ));
     summary.push_str(&format!(
@@ -288,7 +288,7 @@ pub fn run_per_client_generate(app: &AppState) -> Result<String> {
     }
     summary.push('\n');
     summary.push_str(&format!(
-        "Start the mux:\n  rust-mux --config {}\n\n",
+        "Start the mux:\n  rmcp-mux --config {}\n\n",
         outputs.config_toml_path.display()
     ));
     summary.push_str("Use the per-client mux files from each AI client:\n");
@@ -329,7 +329,7 @@ pub fn run_danger_auto_configure(app: &AppState) -> Result<String> {
 
     let plan = plan_danger_rewrite_for_scans(
         &scans,
-        "rust-mux-proxy",
+        "rmcp-mux-proxy",
         &[],
         &expand_path("~/.config/mux/sockets"),
     );
@@ -414,7 +414,7 @@ pub fn run_danger_auto_configure(app: &AppState) -> Result<String> {
 // Tray daemon launcher (STEP 5 "Yes — start now")
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Spawn `rust-mux --tray --multi-service` detached from this terminal so the
+/// Spawn `rmcp-mux --tray --multi-service` detached from this terminal so the
 /// wizard exit doesn't kill the daemon. Returns a short summary line.
 pub fn start_tray_daemon(app: &AppState) -> Result<String> {
     if app.dry_run {
@@ -431,13 +431,13 @@ pub fn start_tray_daemon(app: &AppState) -> Result<String> {
     };
 
     // Prefer the binary sitting next to the running wizard (covers `cargo run`
-    // and bespoke install paths); fall back to PATH lookup of `rust-mux`.
+    // and bespoke install paths); fall back to PATH lookup of `rmcp-mux`.
     let bin = std::env::current_exe()
         .ok()
-        .and_then(|p| p.parent().map(|d| d.join("rust-mux")))
+        .and_then(|p| p.parent().map(|d| d.join("rmcp-mux")))
         .filter(|p| p.exists())
         .map(|p| p.into_os_string())
-        .unwrap_or_else(|| std::ffi::OsString::from("rust-mux"));
+        .unwrap_or_else(|| std::ffi::OsString::from("rmcp-mux"));
 
     let mut cmd = Command::new(&bin);
     cmd.arg("--tray")
@@ -454,7 +454,7 @@ pub fn start_tray_daemon(app: &AppState) -> Result<String> {
             config_arg.display()
         )),
         Err(err) => Ok(format!(
-            "Could not start tray daemon: {err}. Run manually: rust-mux --tray --config {}",
+            "Could not start tray daemon: {err}. Run manually: rmcp-mux --tray --config {}",
             config_arg.display()
         )),
     }
@@ -656,7 +656,7 @@ mod tests {
         let (app, _) = app_with_two_source_services(dir.path());
 
         let scans = selected_danger_scans(&app);
-        let plan = plan_danger_rewrite_for_scans(&scans, "rust-mux-proxy", &[], dir.path());
+        let plan = plan_danger_rewrite_for_scans(&scans, "rmcp-mux-proxy", &[], dir.path());
 
         assert_eq!(plan.actions.len(), 1);
         let action = &plan.actions[0];
@@ -676,7 +676,7 @@ mod tests {
                 .get("memory")
                 .and_then(|v| v.get("command"))
                 .and_then(|v| v.as_str()),
-            Some("rust-mux-proxy")
+            Some("rmcp-mux-proxy")
         );
         assert_eq!(
             servers

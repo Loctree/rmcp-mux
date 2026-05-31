@@ -16,7 +16,7 @@ already defaulted false in 0.4.2.
 - Library heartbeat defaults now match the CLI/config generator contract:
   `MuxConfig::new`, `MuxConfig::default`, and `From<MuxConfig> for
   ResolvedParams` keep `heartbeat_enabled = false` unless explicitly enabled.
-- `rust-mux dashboard --config <path>` now derives the daemon status socket as
+- `rmcp-mux dashboard --config <path>` now derives the daemon status socket as
   `<config_dir>/daemon.sock`, matching `daemon-status --config <path>`.
 - `make daemon-status CONFIG=...` and `make dashboard CONFIG=...` now use the
   installed CLI with the configured daemon socket path.
@@ -26,11 +26,11 @@ already defaulted false in 0.4.2.
 ### Changed
 - `status` help text now states that it inspects host config files rather than
   daemon IPC state.
-- `cargo run` now resolves to the real `rust-mux` binary via `default-run`.
+- `cargo run` now resolves to the real `rmcp-mux` binary via `default-run`.
 
 ### Removed
 - `src/main.rs` stale root binary entrypoint; Cargo already pointed the shipped
-  command surface at `src/bin/rust-mux.rs` and `src/bin/rust-mux-proxy.rs`.
+  command surface at `src/bin/rmcp-mux.rs` and `src/bin/rmcp-mux-proxy.rs`.
 
 ## [0.4.2] - 2026-05-10
 
@@ -44,7 +44,7 @@ already defaulted false in 0.4.2.
   atomically replace status` warnings. Transient `NotFound`/`AlreadyExists`
   rename races are now logged at `debug` level; only genuine I/O failures
   (permission, disk-full) stay at `warn`.
-- **`rust-mux daemon-status --config <path>` now works.** Previously clap
+- **`rmcp-mux daemon-status --config <path>` now works.** Previously clap
   rejected the flag with `unexpected argument '--config' found`; even when
   the operator manually passed `--socket`, the multi-service daemon was
   not actually binding the status listener (the doc-comment claim on
@@ -59,7 +59,7 @@ already defaulted false in 0.4.2.
     on daemon startup, so `daemon-status --config <same>` always finds
     the listener without flag duplication.
   - Explicit `--socket` still overrides; missing both flags falls back
-    to the legacy `/tmp/rust-mux.status.sock` for backwards-compat.
+    to the legacy `/tmp/rmcp-mux.status.sock` for backwards-compat.
 - Removed an accidental `print_status_table` placeholder in `lib.rs` that
   was shadowing the real `runtime::print_status_table` re-export. The
   `daemon-status` table output (non-`--json`) now actually renders.
@@ -69,13 +69,13 @@ already defaulted false in 0.4.2.
   default-discovery, and ps-scan orphans) and in the resolver fallback
   (`config::resolve_params`). MCP protocol (spec 2025-11-25) does not require
   ping/pong probes; most upstream MCP servers (npx wrappers, custom Rust
-  stdio binaries) do not respond to rust-mux heartbeats, so a global `true`
+  stdio binaries) do not respond to rmcp-mux heartbeats, so a global `true`
   forced the daemon into restart loops (heartbeat timeout 30s × 3 max
   failures → endless restart, services never stabilised). Operators flip
   `heartbeat_enabled = true` per-service for backends that explicitly
-  support the rust-mux probe.
+  support the rmcp-mux probe.
 - Generated `~/.config/mux/config.toml` (both the wizard's safe path and
-  `rust-mux scan --manifest --manifest-format toml`) now carries an
+  `rmcp-mux scan --manifest --manifest-format toml`) now carries an
   operator-facing banner explaining the heartbeat policy, so the gotcha is
   discoverable without grepping the source tree.
 - `--heartbeat-enabled` CLI help text updated to advertise the new default.
@@ -95,11 +95,11 @@ already defaulted false in 0.4.2.
   - **Per-client** — separate mux config per originating client kind in
     that client's native format (claude.json, codex.toml, junie.json, ...).
   - **[DANGER] Auto-rewire** — backup-first preview-first rewrite of
-    existing client configs to route through `rust-mux-proxy`, with
+    existing client configs to route through `rmcp-mux-proxy`, with
     rollback commands.
 - **Custom-path input** on STEP 1 (`i` to enter) for client config files
   outside the default discovery list.
-- **Tray daemon prompt** on STEP 5: spawn `rust-mux --tray --config
+- **Tray daemon prompt** on STEP 5: spawn `rmcp-mux --tray --config
   <generated>` detached from the wizard session.
 - New helpers:
   - `mux_gen::build_per_client_outputs` + `write_per_client_outputs` +
@@ -120,18 +120,18 @@ already defaulted false in 0.4.2.
 - **Source-of-truth model** flipped: client configs (Claude / Codex /
   Junie / Gemini / ...) are authoritative; running processes are
   side-effects.
-- **Wizard title** rebranded from `rmcp_mux wizard` to `rust-mux
+- **Wizard title** rebranded from `rmcp_mux wizard` to `rmcp-mux
   wizard`. Daemon-status banner and multi-server dashboard header
   rebranded in lockstep.
 - **Socket path canonicalised** to v0.4.0
-  `~/.rmcp-servers/rust-mux/sockets/` everywhere (was a mix of
+  `~/.rmcp-servers/rmcp-mux/sockets/` everywhere (was a mix of
   `~/mcp-sockets/` and the canonical path).
 - **AI_README** bumped to 0.4.0 / 2026-05-05; project structure
   reflects modular `runtime/` + `wizard/` and the new helper modules.
 
 ### Fixed
-- Self-skip dedup bug in the ps-scan: `args.contains("rust-mux") ||
-  args.contains("rust-mux")` was a copy/paste; the second clause now
+- Self-skip dedup bug in the ps-scan: `args.contains("rmcp-mux") ||
+  args.contains("rmcp-mux")` was a copy/paste; the second clause now
   correctly matches the legacy `rmcp_mux` binary name.
 - Per-client strategy output collisions for same-kind sources (Junie
   ×3, Cursor ×2, VSCode ×2): same-kind scans now merge before writing
@@ -145,11 +145,11 @@ already defaulted false in 0.4.2.
 - Removed dead `#[allow(dead_code)]` carry-overs from the C2/C3
   rebuild after consumers landed in the 5-step flow.
 - Documentation drift: rmcp_mux references in doc comments, status
-  banners, and proxy `--socket` help text replaced with rust-mux.
+  banners, and proxy `--socket` help text replaced with rmcp-mux.
 
 ### Security
 - Audited dependency tree for the `tray` feature: 0 vulnerabilities, 1
-  unsoundness (glib 0.18.5 RUSTSEC-2024-0429, not on rust-mux's call
+  unsoundness (glib 0.18.5 RUSTSEC-2024-0429, not on rmcp-mux's call
   graph) and 8 unmaintained advisories (GTK3 stack via tray-icon).
   Tracked in `AGENTS.md` under "Tray feature
   dependency risks". CI mitigation: `--no-default-features`.
@@ -166,8 +166,8 @@ already defaulted false in 0.4.2.
 ## [0.4.0] - 2025-12-26
 
 ### Breaking Changes
-- **Default paths changed** from `~/.rmcp_servers/rmcp_mux/` to `~/.rmcp-servers/rust-mux/`.
-- **Proxy command** changed from `rmcp_mux_proxy` to `rust-mux-proxy`.
+- **Default paths changed** from `~/.rmcp_servers/rmcp_mux/` to `~/.rmcp-servers/rmcp-mux/`.
+- **Proxy command** changed from `rmcp_mux_proxy` to `rmcp-mux-proxy`.
 
 ### Added
 - **Daemon Status Socket** - Query running daemon status via Unix socket.
@@ -179,9 +179,9 @@ already defaulted false in 0.4.2.
 - **Standalone Build** - Inlined common types, no workspace dependencies.
 
 ### Changed
-- Default socket directory: `~/.rmcp-servers/rust-mux/sockets`.
-- Default service name: `rust-mux` (hyphenated).
-- Detection now matches both `rust-mux` and legacy `rmcp_mux` patterns.
+- Default socket directory: `~/.rmcp-servers/rmcp-mux/sockets`.
+- Default service name: `rmcp-mux` (hyphenated).
+- Detection now matches both `rmcp-mux` and legacy `rmcp_mux` patterns.
 - Updated to Rust Edition 2024 (stable).
 
 ### Fixed
@@ -195,7 +195,7 @@ already defaulted false in 0.4.2.
 ## [0.3.0] - 2025-12-04
 
 ### Added
-- **Library-first architecture** – rust-mux is now an embeddable Rust library, not just a CLI tool.
+- **Library-first architecture** – rmcp-mux is now an embeddable Rust library, not just a CLI tool.
 - `MuxConfig` builder for programmatic configuration:
   ```rust
   let config = MuxConfig::new("/tmp/mcp.sock", "npx")
@@ -212,8 +212,8 @@ already defaulted false in 0.4.2.
 - Feature flags: `cli` (wizard, scan, binaries) and `tray` (system tray icon).
 
 ### Changed
-- **Rebranded: `rmcp_mux` → `rust-mux`.** Crate name hyphenated on crates.io per convention; module path `rust_mux`. Binary `rmcp_mux_proxy` → `rust_mux_proxy`. All internal imports `use rmcp_mux::` → `use rust_mux::`. User-facing `RMCP_MUX_*` environment variables preserved for backward compatibility.
-- **Moved to Loctree org:** `https://github.com/VetCoders/rust-mux` → `https://github.com/Loctree/rust-mux`.
+- **Rebranded: `rmcp_mux` → `rmcp-mux`.** Crate name hyphenated on crates.io per convention; module path `rmcp_mux`. Binary `rmcp_mux_proxy` → `rmcp_mux_proxy`. All internal imports `use rmcp_mux::` → `use rmcp_mux::`. User-facing `RMCP_MUX_*` environment variables preserved for backward compatibility.
+- **Moved to Loctree org:** `https://github.com/VetCoders/rmcp-mux` → `https://github.com/Loctree/rmcp-mux`.
 
 ### Added
 - Package metadata: `description`, `repository`, `homepage`, `documentation`, `readme`, `keywords`, `categories`, `license = "MIT OR Apache-2.0"`, and `authors = ["Maciej Gad <void@div0.space>", "Monika Szymanska <hello@vetcoders.io>"]` in `Cargo.toml` for proper crates.io listing and discovery.
@@ -221,15 +221,15 @@ already defaulted false in 0.4.2.
 ## 0.2.0 - 2025-11-24
 
 ### Added
-- Optional tray icon (`--tray`) showing live server status, client and pending counts, and restart reasons. ([5eefde4](https://github.com/LibraxisAI/rust_mux/commit/5eefde4))
-- Config file support (JSON/YAML/TOML) with auto-detection and CLI overrides. ([5eefde4](https://github.com/LibraxisAI/rust_mux/commit/5eefde4))
-- `rust-mux-proxy` helper binary plus launchd template and installer tweaks for easier setup. ([04e5402](https://github.com/LibraxisAI/rust_mux/commit/04e5402))
-- GitHub Actions CI workflow for formatting, linting, testing, and coverage, including an async proxy forwarding test. ([ad2b9aa](https://github.com/LibraxisAI/rust_mux/commit/ad2b9aa))
-- Mux hooks, Semgrep rules, and expanded README documentation. ([e80083c](https://github.com/LibraxisAI/rust_mux/commit/e80083c))
+- Optional tray icon (`--tray`) showing live server status, client and pending counts, and restart reasons. ([5eefde4](https://github.com/LibraxisAI/rmcp_mux/commit/5eefde4))
+- Config file support (JSON/YAML/TOML) with auto-detection and CLI overrides. ([5eefde4](https://github.com/LibraxisAI/rmcp_mux/commit/5eefde4))
+- `rmcp-mux-proxy` helper binary plus launchd template and installer tweaks for easier setup. ([04e5402](https://github.com/LibraxisAI/rmcp_mux/commit/04e5402))
+- GitHub Actions CI workflow for formatting, linting, testing, and coverage, including an async proxy forwarding test. ([ad2b9aa](https://github.com/LibraxisAI/rmcp_mux/commit/ad2b9aa))
+- Mux hooks, Semgrep rules, and expanded README documentation. ([e80083c](https://github.com/LibraxisAI/rmcp_mux/commit/e80083c))
 - `health` subcommand to resolve config and assert socket reachability, plus unit tests for healthy/missing sockets.
 
 ### Changed
-- Refactored mux state management and tray functionality into dedicated `state` and `tray` modules, with tray dependencies gated behind an optional `tray` feature; CI updated to run with `--no-default-features`. ([0d60764](https://github.com/LibraxisAI/rust_mux/commit/0d60764), [ad2b9aa](https://github.com/LibraxisAI/rust_mux/commit/ad2b9aa))
+- Refactored mux state management and tray functionality into dedicated `state` and `tray` modules, with tray dependencies gated behind an optional `tray` feature; CI updated to run with `--no-default-features`. ([0d60764](https://github.com/LibraxisAI/rmcp_mux/commit/0d60764), [ad2b9aa](https://github.com/LibraxisAI/rmcp_mux/commit/ad2b9aa))
 
 ## 0.1.5
 - Added JSON status snapshots (`--status-file` / `status_file`) including PID, queue depth, request limits, restart/backoff settings.

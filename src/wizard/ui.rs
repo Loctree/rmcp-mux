@@ -37,7 +37,7 @@ pub fn draw_ui(f: &mut Frame, app: &AppState) {
     };
     let title = Paragraph::new(Line::from(vec![
         Span::styled(
-            "rust-mux wizard",
+            "rmcp-mux wizard",
             Style::default().add_modifier(Modifier::BOLD),
         ),
         Span::raw(" — "),
@@ -328,7 +328,7 @@ fn draw_step3_strategy(f: &mut Frame, app: &AppState, area: Rect) {
         (
             Strategy::AutoRewire,
             "[DANGER] Auto-rewire existing client configs",
-            "Backup-first preview-first rewrite of your real client configs to route through rust-mux-proxy.",
+            "Backup-first preview-first rewrite of your real client configs to route through rmcp-mux-proxy.",
         ),
     ];
 

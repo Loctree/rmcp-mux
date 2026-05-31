@@ -425,7 +425,7 @@ pub fn resolve_params(cli: &dyn CliOptions, config: Option<&Config>) -> Result<R
                 .file_name()
                 .and_then(|n| n.to_string_lossy().split('.').next().map(|s| s.to_string()))
         })
-        .unwrap_or_else(|| "rust_mux".to_string());
+        .unwrap_or_else(|| "rmcp_mux".to_string());
 
     // Heartbeat configuration
     let heartbeat_interval = Duration::from_millis(
@@ -455,7 +455,7 @@ pub fn resolve_params(cli: &dyn CliOptions, config: Option<&Config>) -> Result<R
         })
         .unwrap_or(3);
     // Default `false`: MCP protocol does not mandate ping/pong; most upstream
-    // servers do not implement rust-mux heartbeats and would be killed in a
+    // servers do not implement rmcp-mux heartbeats and would be killed in a
     // restart loop. Operators opt in per-service via CLI flag or config.
     let heartbeat_enabled = cli
         .heartbeat_enabled()

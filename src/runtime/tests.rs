@@ -937,7 +937,7 @@ async fn mux_transport_roundtrip_with_loctree_mcp() {
         "params": {
             "protocolVersion": "2024-11-05",
             "capabilities": {},
-            "clientInfo": {"name": "rust-mux-test", "version": "0.1.0"}
+            "clientInfo": {"name": "rmcp-mux-test", "version": "0.1.0"}
         }
     });
     write_half
@@ -1050,7 +1050,7 @@ async fn mux_transport_roundtrip_with_loctree_mcp() {
         .get("result")
         .expect("tools/call repo-view bez result");
     println!(
-        "loctree-mcp repo-view (rust-mux): {}",
+        "loctree-mcp repo-view (rmcp-mux): {}",
         serde_json::to_string_pretty(repo_view_result).expect("serialize repo-view result")
     );
 

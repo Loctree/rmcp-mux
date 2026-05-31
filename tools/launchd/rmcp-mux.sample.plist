@@ -8,7 +8,7 @@
   <!-- Adjust paths below to your environment -->
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/YOUR_USER/.cargo/bin/rust-mux</string>
+    <string>/Users/YOUR_USER/.cargo/bin/rmcp-mux</string>
     <string>--config</string>
     <string>/Users/YOUR_USER/.codex/mcp.json</string>
     <string>--service</string>
@@ -18,7 +18,7 @@
 
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>/tmp/rust-mux.general-memory.out</string>
-  <key>StandardErrorPath</key><string>/tmp/rust-mux.general-memory.err</string>
+  <key>StandardOutPath</key><string>/tmp/rmcp-mux.general-memory.out</string>
+  <key>StandardErrorPath</key><string>/tmp/rmcp-mux.general-memory.err</string>
 </dict>
 </plist>

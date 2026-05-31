@@ -1,23 +1,23 @@
 ---
-run_id: rust-mux-client-discovery-config-generation
+run_id: rmcp-mux-client-discovery-config-generation
 skill: vc-agents
-project: rust-mux
+project: rmcp-mux
 status: pending
 loops_completed: 0
 ---
 
-# Task: rust-mux MCP client discovery and config generation
+# Task: rmcp-mux MCP client discovery and config generation
 
 You are working on a living tree. Concurrent changes are expected. Adapt proactively and continue, but do not skip quality, security, or test gates.
 
 ## Product intent
 
-`rust-mux` is a daemon/proxy for keeping one MCP server process alive and sharing it between many MCP clients through a socket/proxy transport. The current client discovery defaults are stale after the `rmcp_mux` → `rust-mux` rebrand and after real CLI verification.
+`rmcp-mux` is a daemon/proxy for keeping one MCP server process alive and sharing it between many MCP clients through a socket/proxy transport. The current client discovery defaults are stale after the `rmcp_mux` → `rmcp-mux` rebrand and after real CLI verification.
 
 Implement a client discovery and setup flow that stops pretending all MCP clients use one universal config model. The wizard must offer two explicit paths:
 
 1. Safe default: discover real MCP servers from known client configs, generate mux-owned configs under `~/.config/mux`, and print exact per-client usage instructions. Do not modify existing client configs.
-2. `[DANGER] Automatically configure my clients`: after discovery, offer a backup-first and preview-first rewrite of known MCP server blocks in existing client configs so they point to `rust-mux-proxy` instead of directly starting upstream MCP servers.
+2. `[DANGER] Automatically configure my clients`: after discovery, offer a backup-first and preview-first rewrite of known MCP server blocks in existing client configs so they point to `rmcp-mux-proxy` instead of directly starting upstream MCP servers.
 
 ## Required real-world defaults
 
@@ -71,15 +71,15 @@ Correct the discovery defaults according to observed local CLI behavior and curr
 
 Generate mux-owned files under `~/.config/mux`:
 
-- `~/.config/mux/config.toml` — daemon/upstream truth for `rust-mux`, containing original upstream commands.
-- `~/.config/mux/mcp.json` — client-facing JSON config where each server command is `rust-mux-proxy`.
+- `~/.config/mux/config.toml` — daemon/upstream truth for `rmcp-mux`, containing original upstream commands.
+- `~/.config/mux/mcp.json` — client-facing JSON config where each server command is `rmcp-mux-proxy`.
 - `~/.config/mux/mcp.toml` — client-facing TOML config for TOML-style clients / manual Codex merge.
 
-The generated client-facing configs must point clients at `rust-mux-proxy`, not at upstream MCP servers directly.
+The generated client-facing configs must point clients at `rmcp-mux-proxy`, not at upstream MCP servers directly.
 
 After generation, print concise instructions:
 
-- how to start `rust-mux` with generated daemon config;
+- how to start `rmcp-mux` with generated daemon config;
 - Claude strict-mode command;
 - Junie `--mcp-location` command;
 - Codex note that there is no verified strict config-file flag in this environment, plus generated `codex mcp add ...` or manual TOML merge instructions;

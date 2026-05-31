@@ -46,7 +46,7 @@ pub enum Strategy {
     /// only that client's servers. Native format per client.
     PerClient,
     /// `[DANGER]` Auto-rewire existing client configs in-place to route
-    /// through `rust-mux-proxy`. Backup-first, preview-first, rollback-ready.
+    /// through `rmcp-mux-proxy`. Backup-first, preview-first, rollback-ready.
     AutoRewire,
 }
 
@@ -61,7 +61,7 @@ pub enum SummaryAction {
 /// Tray daemon prompt on STEP 5.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrayChoice {
-    /// Spawn `rust-mux --tray --multi-service` in the background detached
+    /// Spawn `rmcp-mux --tray --multi-service` in the background detached
     /// from this terminal.
     StartNow,
     /// Skip the tray daemon, exit cleanly.
@@ -81,7 +81,7 @@ pub enum PendingAction {
     /// Strategy::PerClient — write per-kind native files in `~/.config/mux/`.
     GeneratePerClient,
     /// Strategy::AutoRewire — backup-first preview-first rewrite of existing
-    /// client configs to route through `rust-mux-proxy`.
+    /// client configs to route through `rmcp-mux-proxy`.
     AutoRewire,
     /// Spawn the tray daemon detached; runs after the strategy result is
     /// printed.

@@ -1,7 +1,7 @@
-//! rust-mux CLI binary
+//! rmcp-mux CLI binary
 //!
-//! This is the command-line interface for rust-mux. For library usage,
-//! see the `rust_mux` crate documentation.
+//! This is the command-line interface for rmcp-mux. For library usage,
+//! see the `rmcp_mux` crate documentation.
 
 use std::path::PathBuf;
 
@@ -11,15 +11,15 @@ use tracing_subscriber::filter::LevelFilter;
 
 use tokio_util::sync::CancellationToken;
 
-use rust_mux::config::{
+use rmcp_mux::config::{
     CliOptions, expand_path, load_config, resolve_params, resolve_params_multi,
 };
-use rust_mux::runtime::{health_check, run_mux, run_proxy};
-use rust_mux::scan::{
+use rmcp_mux::runtime::{health_check, run_mux, run_proxy};
+use rmcp_mux::scan::{
     RewireArgs, ScanArgs, StatusArgs, run_rewire_cmd, run_scan_cmd, run_status_cmd,
 };
-use rust_mux::wizard::WizardArgs;
-use rust_mux::{
+use rmcp_mux::wizard::WizardArgs;
+use rmcp_mux::{
     DEFAULT_STATUS_SOCKET, print_status_table, query_status, restart_single,
     run_mux_multi_with_status_socket, status_all, status_socket_for_config,
 };
@@ -41,7 +41,7 @@ enum CliCommand {
     Wizard(WizardArgs),
     /// Scan host configs and generate mux manifests/snippets.
     Scan(ScanArgs),
-    /// Rewire a host config to point to rust-mux proxy.
+    /// Rewire a host config to point to rmcp-mux proxy.
     Rewire(RewireArgs),
     /// Proxy STDIO to a mux socket (for MCP hosts).
     Proxy(ProxyArgs),
@@ -150,10 +150,10 @@ struct HealthArgs {
 struct DaemonStatusArgs {
     /// Status socket path. Defaults to the per-config socket when `--config`
     /// is given (`<config_dir>/daemon.sock`); otherwise falls back to
-    /// `/tmp/rust-mux.status.sock` for backwards compatibility.
+    /// `/tmp/rmcp-mux.status.sock` for backwards compatibility.
     #[arg(long)]
     socket: Option<std::path::PathBuf>,
-    /// Config file used when the daemon was started with `rust-mux --config`.
+    /// Config file used when the daemon was started with `rmcp-mux --config`.
     /// Used to derive the status socket path so `daemon-status` can find a
     /// daemon that does not bind the legacy default socket.
     #[arg(long)]
@@ -168,10 +168,10 @@ struct DaemonStatusArgs {
 struct DashboardArgs {
     /// Status socket path. Defaults to the per-config socket when `--config`
     /// is given (`<config_dir>/daemon.sock`); otherwise falls back to
-    /// `/tmp/rust-mux.status.sock` for backwards compatibility.
+    /// `/tmp/rmcp-mux.status.sock` for backwards compatibility.
     #[arg(long)]
     socket: Option<std::path::PathBuf>,
-    /// Config file used when the daemon was started with `rust-mux --config`.
+    /// Config file used when the daemon was started with `rmcp-mux --config`.
     /// Used to derive the status socket path for the tray dashboard.
     #[arg(long)]
     config: Option<std::path::PathBuf>,
@@ -196,7 +196,7 @@ fn main() -> Result<()> {
 async fn async_main(cli: RootCli) -> Result<()> {
     match &cli.command {
         Some(CliCommand::Wizard(wargs)) => {
-            rust_mux::wizard::run_wizard(wargs.clone()).await?;
+            rmcp_mux::wizard::run_wizard(wargs.clone()).await?;
             return Ok(());
         }
         Some(CliCommand::Scan(args)) => {
@@ -290,8 +290,8 @@ async fn async_main(cli: RootCli) -> Result<()> {
 
         // When the operator passed `--config <path>`, bind the daemon
         // status listener at the per-config sibling socket so
-        // `rust-mux daemon-status --config <same>` can find it without
-        // needing the legacy `/tmp/rust-mux.status.sock`.
+        // `rmcp-mux daemon-status --config <same>` can find it without
+        // needing the legacy `/tmp/rmcp-mux.status.sock`.
         let status_socket = cli.config.as_deref().map(status_socket_for_config);
 
         let shutdown = CancellationToken::new();
@@ -341,7 +341,7 @@ async fn run_daemon_status(args: DaemonStatusArgs) -> Result<()> {
 
     let status = query_status(&socket).await.map_err(|e| {
         anyhow!(
-            "failed to connect to mux daemon at {}: {} (is rust-mux running?)",
+            "failed to connect to mux daemon at {}: {} (is rmcp-mux running?)",
             socket.display(),
             e
         )
@@ -384,13 +384,13 @@ fn run_dashboard(args: DashboardArgs) -> Result<()> {
     let shutdown = CancellationToken::new();
     let socket = resolve_dashboard_status_socket(args.socket.as_deref(), args.config.as_deref());
 
-    println!("Starting rust-mux dashboard...");
+    println!("Starting rmcp-mux dashboard...");
     println!("Using daemon status socket: {}", socket.display());
     println!("Click 'Quit Dashboard' in tray menu to exit");
 
-    let icon = rust_mux::tray::find_tray_icon();
+    let icon = rmcp_mux::tray::find_tray_icon();
     // Run on main thread - required for macOS tray menu creation
-    rust_mux::tray_dashboard::run_tray_dashboard(shutdown, icon, Some(socket));
+    rmcp_mux::tray_dashboard::run_tray_dashboard(shutdown, icon, Some(socket));
 
     println!("Dashboard closed");
     Ok(())
@@ -481,7 +481,7 @@ mod tests {
         // Regression: prior to 0.4.2 `daemon-status --config <path>` exited
         // with `error: unexpected argument '--config' found`.
         let cli = RootCli::try_parse_from([
-            "rust-mux",
+            "rmcp-mux",
             "daemon-status",
             "--config",
             "/tmp/example/config.toml",
@@ -538,7 +538,7 @@ mod tests {
     #[test]
     fn dashboard_config_flag() {
         let cli = RootCli::try_parse_from([
-            "rust-mux",
+            "rmcp-mux",
             "dashboard",
             "--config",
             "/tmp/example/config.toml",

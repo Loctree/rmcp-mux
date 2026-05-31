@@ -154,7 +154,7 @@ pub async fn run_mux(params: ResolvedParams, shutdown: CancellationToken) -> Res
 ///
 /// # Example
 /// ```rust,no_run
-/// use rust_mux::config::ResolvedParams;
+/// use rmcp_mux::config::ResolvedParams;
 /// use tokio_util::sync::CancellationToken;
 ///
 /// async fn run_embedded(params: ResolvedParams) {
@@ -167,7 +167,7 @@ pub async fn run_mux(params: ResolvedParams, shutdown: CancellationToken) -> Res
 ///         shutdown_clone.cancel();
 ///     });
 ///
-///     rust_mux::runtime::run_mux_internal(params, shutdown).await.unwrap();
+///     rmcp_mux::runtime::run_mux_internal(params, shutdown).await.unwrap();
 /// }
 /// ```
 pub async fn run_mux_internal(params: ResolvedParams, shutdown: CancellationToken) -> Result<()> {

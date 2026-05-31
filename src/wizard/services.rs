@@ -271,8 +271,8 @@ fn list_running_mcp_processes() -> Vec<RunningMcpProcess> {
         if !MCP_PATTERNS.iter().any(|p| args.contains(p)) {
             continue;
         }
-        // Skip rust-mux itself, its proxy, and the legacy rmcp_mux binary names.
-        if args.contains("rust-mux") || args.contains("rmcp_mux") {
+        // Skip rmcp-mux itself, its proxy, and the legacy rmcp_mux binary names.
+        if args.contains("rmcp-mux") || args.contains("rmcp_mux") {
             continue;
         }
 

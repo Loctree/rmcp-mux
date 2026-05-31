@@ -1,4 +1,4 @@
-//! # rust_mux - MCP Server Multiplexer
+//! # rmcp_mux - MCP Server Multiplexer
 //!
 //! A library for multiplexing MCP (Model Context Protocol) servers, allowing
 //! a single server process to serve multiple clients via Unix sockets.
@@ -14,7 +14,7 @@
 //! ## Usage as Library
 //!
 //! ```rust,no_run
-//! use rust_mux::{MuxConfig, run_mux_server};
+//! use rmcp_mux::{MuxConfig, run_mux_server};
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
@@ -30,7 +30,7 @@
 //! ## Usage with Multiple Mux Instances
 //!
 //! ```rust,no_run
-//! use rust_mux::{MuxConfig, spawn_mux_server, MuxHandle};
+//! use rmcp_mux::{MuxConfig, spawn_mux_server, MuxHandle};
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
@@ -119,16 +119,16 @@ pub use multi_tui::run_multi_tui;
 // Library-first configuration builder
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Configuration for embedding rust_mux in your application.
+/// Configuration for embedding rmcp_mux in your application.
 ///
-/// Heartbeat monitoring is opt-in for MCP servers that support rust-mux
+/// Heartbeat monitoring is opt-in for MCP servers that support rmcp-mux
 /// ping/pong probes. The CLI, scan, wizard, and library defaults all keep
 /// heartbeats disabled unless explicitly enabled.
 ///
 /// Use the builder pattern to configure the mux server:
 ///
 /// ```rust
-/// use rust_mux::MuxConfig;
+/// use rmcp_mux::MuxConfig;
 /// use std::time::Duration;
 ///
 /// let config = MuxConfig::new("/tmp/my-mcp.sock", "npx")
@@ -323,14 +323,14 @@ impl MuxConfig {
             self.socket
                 .file_name()
                 .and_then(|n| n.to_string_lossy().split('.').next().map(|s| s.to_string()))
-                .unwrap_or_else(|| "rust_mux".to_string())
+                .unwrap_or_else(|| "rmcp_mux".to_string())
         })
     }
 }
 
 impl Default for MuxConfig {
     fn default() -> Self {
-        Self::new("/tmp/rust-mux.sock", "npx")
+        Self::new("/tmp/rmcp-mux.sock", "npx")
     }
 }
 
@@ -373,7 +373,7 @@ impl From<MuxConfig> for ResolvedParams {
 ///
 /// # Example
 /// ```rust,no_run
-/// use rust_mux::{MuxConfig, run_mux_server};
+/// use rmcp_mux::{MuxConfig, run_mux_server};
 ///
 /// #[tokio::main]
 /// async fn main() -> anyhow::Result<()> {
@@ -419,7 +419,7 @@ impl MuxHandle {
 ///
 /// # Example
 /// ```rust,no_run
-/// use rust_mux::{MuxConfig, spawn_mux_server};
+/// use rmcp_mux::{MuxConfig, spawn_mux_server};
 ///
 /// #[tokio::main]
 /// async fn main() -> anyhow::Result<()> {
@@ -515,7 +515,7 @@ pub async fn run_mux_multi(
 }
 
 /// Run multiple mux servers in a single process and bind a daemon-wide
-/// status socket so `rust-mux daemon-status` can query all managed servers.
+/// status socket so `rmcp-mux daemon-status` can query all managed servers.
 ///
 /// `status_socket` overrides the bind path; `None` uses
 /// [`DEFAULT_STATUS_SOCKET`]. Pass [`status_socket_for_config`] of the

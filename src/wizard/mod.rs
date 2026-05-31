@@ -1,4 +1,4 @@
-//! Interactive wizard for configuring rust-mux services and rewiring MCP clients.
+//! Interactive wizard for configuring rmcp-mux services and rewiring MCP clients.
 //!
 //! v0.4.0 5-step flow:
 //!

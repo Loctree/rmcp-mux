@@ -353,7 +353,7 @@ mod tests {
     fn make_app(step: WizardStep) -> AppState {
         AppState {
             wizard_step: step,
-            config_path: PathBuf::from("/tmp/rust-mux-test-config.toml"),
+            config_path: PathBuf::from("/tmp/rmcp-mux-test-config.toml"),
             sources: Vec::new(),
             selected_source: 0,
             custom_path: CustomPathInput::default(),

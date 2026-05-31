@@ -158,7 +158,7 @@ fn build_tray(snapshot: &StatusSnapshot, icon_data: Option<&LoadedIcon>) -> Resu
         default_icon()
     };
     let tray = TrayIconBuilder::new()
-        .with_tooltip(format!("rust-mux – {}", snapshot.service_name))
+        .with_tooltip(format!("rmcp-mux – {}", snapshot.service_name))
         .with_icon(icon)
         .with_menu(Box::new(menu.clone()))
         .build()?;

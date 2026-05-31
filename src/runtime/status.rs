@@ -147,11 +147,11 @@ fn log_status_write_error(context: &str, err: &anyhow::Error) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Default status socket path.
-pub const DEFAULT_STATUS_SOCKET: &str = "/tmp/rust-mux.status.sock";
+pub const DEFAULT_STATUS_SOCKET: &str = "/tmp/rmcp-mux.status.sock";
 
 /// Deterministically derive a per-config status socket path.
 ///
-/// When `rust-mux --config <path>` is started, the daemon binds the status
+/// When `rmcp-mux --config <path>` is started, the daemon binds the status
 /// listener at `<config_dir>/daemon.sock`. `daemon-status --config <same>`
 /// connects to the same path without needing a separate flag or env var.
 ///
@@ -373,7 +373,7 @@ pub async fn query_status(socket_path: impl AsRef<Path>) -> Result<DaemonStatus>
 
 /// Print status in a formatted table.
 pub fn print_status_table(status: &DaemonStatus) {
-    println!("rust-mux v{} | uptime: {}", status.version, status.uptime);
+    println!("rmcp-mux v{} | uptime: {}", status.version, status.uptime);
     println!("{:─<72}", "");
     println!(
         "{:<20} {:^8} {:>8} {:>8} {:>10} {:>10}",
@@ -439,8 +439,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_status_socket_uses_rust_mux_identity() {
-        assert_eq!(DEFAULT_STATUS_SOCKET, "/tmp/rust-mux.status.sock");
+    fn default_status_socket_uses_rmcp_mux_identity() {
+        assert_eq!(DEFAULT_STATUS_SOCKET, "/tmp/rmcp-mux.status.sock");
     }
 
     #[test]
@@ -461,7 +461,7 @@ mod tests {
 
     #[test]
     fn unique_tmp_paths_never_collide() {
-        let target = std::path::Path::new("/tmp/rust-mux-status-test/all.json");
+        let target = std::path::Path::new("/tmp/rmcp-mux-status-test/all.json");
         let a = unique_tmp_path(target);
         let b = unique_tmp_path(target);
         assert_ne!(a, b, "concurrent writers must get distinct tmp paths");

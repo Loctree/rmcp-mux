@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use rust_mux::ipc::IpcEvent;
+use rmcp_mux::ipc::IpcEvent;
 use tempfile::tempdir;
 use tokio::sync::broadcast;
 
@@ -23,7 +23,7 @@ async fn broadcasts_spawn_updates_from_events_jsonl() {
     .expect("write events");
 
     let (tx, mut rx) = broadcast::channel(8);
-    let bridge = tokio::spawn(rust_mux::jsonl_bridge::run_jsonl_bridge(
+    let bridge = tokio::spawn(rmcp_mux::jsonl_bridge::run_jsonl_bridge(
         home.path().to_path_buf(),
         tx,
     ));

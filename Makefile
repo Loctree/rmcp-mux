@@ -9,11 +9,11 @@ SERVICE ?= general-memory
 SOCKET ?= /tmp/$(SERVICE).sock
 CMD ?= npx
 CMD_ARGS ?= @modelcontextprotocol/server-memory
-STATUS_FILE ?= $(HOME)/.rust-mux/status/$(SERVICE).json
+STATUS_FILE ?= $(HOME)/.rmcp-mux/status/$(SERVICE).json
 LOG_LEVEL ?= info
 
 help:
-	@echo "rust-mux targets"
+	@echo "rmcp-mux targets"
 	@echo "  build             - cargo build"
 	@echo "  release           - cargo build --release"
 	@echo "  check             - cargo check --all-targets --all-features"
@@ -29,7 +29,7 @@ help:
 	@echo "  wizard-dry-run    - uruchom wizard bez zapisu"
 	@echo "  run               - uruchom mux dla SERVICE z CONFIG"
 	@echo "  run-tray          - uruchom mux z tray + STATUS_FILE"
-	@echo "  proxy             - uruchom rust-mux-proxy dla SOCKET"
+	@echo "  proxy             - uruchom rmcp-mux-proxy dla SOCKET"
 	@echo "  health            - health check dla SERVICE z CONFIG"
 	@echo "  daemon-status     - status wszystkich usług z daemona"
 	@echo "  dashboard         - uruchom tray dashboard (feature: tray)"
@@ -73,28 +73,28 @@ test-full:
 gates: fmt-check clippy test
 
 wizard:
-	cargo run --bin rust-mux -- wizard --config "$(CONFIG)" --service "$(SERVICE)"
+	cargo run --bin rmcp-mux -- wizard --config "$(CONFIG)" --service "$(SERVICE)"
 
 wizard-dry-run:
-	cargo run --bin rust-mux -- wizard --config "$(CONFIG)" --service "$(SERVICE)" --dry-run
+	cargo run --bin rmcp-mux -- wizard --config "$(CONFIG)" --service "$(SERVICE)" --dry-run
 
 run:
-	cargo run --bin rust-mux -- --config "$(CONFIG)" --service "$(SERVICE)" --log-level "$(LOG_LEVEL)"
+	cargo run --bin rmcp-mux -- --config "$(CONFIG)" --service "$(SERVICE)" --log-level "$(LOG_LEVEL)"
 
 run-tray: status-file-init
-	cargo run --bin rust-mux -- --config "$(CONFIG)" --service "$(SERVICE)" --tray --status-file "$(STATUS_FILE)" --log-level "$(LOG_LEVEL)"
+	cargo run --bin rmcp-mux -- --config "$(CONFIG)" --service "$(SERVICE)" --tray --status-file "$(STATUS_FILE)" --log-level "$(LOG_LEVEL)"
 
 proxy:
-	cargo run --bin rust-mux-proxy -- --socket "$(SOCKET)"
+	cargo run --bin rmcp-mux-proxy -- --socket "$(SOCKET)"
 
 health:
-	cargo run --bin rust-mux -- health --config "$(CONFIG)" --service "$(SERVICE)"
+	cargo run --bin rmcp-mux -- health --config "$(CONFIG)" --service "$(SERVICE)"
 
 daemon-status:
-	rust-mux daemon-status --config "$(CONFIG)"
+	rmcp-mux daemon-status --config "$(CONFIG)"
 
 dashboard:
-	rust-mux dashboard --config "$(CONFIG)"
+	rmcp-mux dashboard --config "$(CONFIG)"
 
 status-file-init:
 	mkdir -p "$(dir $(STATUS_FILE))"

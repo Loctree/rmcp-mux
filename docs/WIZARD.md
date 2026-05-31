@@ -1,10 +1,10 @@
-# rust-mux wizard — five-step flow
+# rmcp-mux wizard — five-step flow
 
 > **Version:** 0.4.0
 > **Last updated:** 2026-05-06
 
 The wizard takes you from "I have N MCP clients with overlapping servers" to
-"every client multiplexes through one rust-mux daemon" without surprising you.
+"every client multiplexes through one rmcp-mux daemon" without surprising you.
 Five steps. Three strategies. Backups before any rewrite.
 
 ```
@@ -16,9 +16,9 @@ make wizard                           # uses default ~/.codex/mcp-mux.toml
 make wizard-dry-run                   # preview only, no writes
 
 # Or directly:
-cargo run --bin rust-mux -- wizard --config ~/.codex/mcp-mux.toml
-cargo run --bin rust-mux -- wizard --dry-run
-cargo run --bin rust-mux -- wizard --import-config ~/.workspace/mcp.json
+cargo run --bin rmcp-mux -- wizard --config ~/.codex/mcp-mux.toml
+cargo run --bin rmcp-mux -- wizard --dry-run
+cargo run --bin rmcp-mux -- wizard --import-config ~/.workspace/mcp.json
 ```
 
 ## Source of truth
@@ -123,7 +123,7 @@ selected.
 │                                                                         │
 │   ( ) 3. [DANGER] Auto-rewire existing client configs                   │
 │       Backup-first preview-first rewrite of your real client configs    │
-│       to route through rust-mux-proxy.                                  │
+│       to route through rmcp-mux-proxy.                                  │
 │                                                                         │
 │ Up/Down to choose, Enter or n to continue, p to go back, q to quit.     │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -137,8 +137,8 @@ Writes three files into `~/.config/mux/`:
 
 | File | Role |
 |---|---|
-| `config.toml` | Daemon truth — what `rust-mux` should run upstream. |
-| `mcp.json` | Client-facing JSON; every server's `command` is `rust-mux-proxy`. |
+| `config.toml` | Daemon truth — what `rmcp-mux` should run upstream. |
+| `mcp.json` | Client-facing JSON; every server's `command` is `rmcp-mux-proxy`. |
 | `mcp.toml` | Same shape as `mcp.json` but in TOML for Codex-style tooling. |
 
 Per-client startup snippets are printed on STEP 5:
@@ -146,7 +146,7 @@ Per-client startup snippets are printed on STEP 5:
 ```
 claude --strict-mcp-config --mcp-config "$HOME/.config/mux/mcp.json"
 junie  --mcp-location      "$HOME/.config/mux/mcp.json"
-gemini mcp add aicx-mcp -- rust-mux-proxy --socket $HOME/.config/mux/sockets/aicx-mcp.sock
+gemini mcp add aicx-mcp -- rmcp-mux-proxy --socket $HOME/.config/mux/sockets/aicx-mcp.sock
 ```
 
 (Codex has no flag to swap the entire config file; the snippet tells you
@@ -173,7 +173,7 @@ file with the per-kind startup commands STEP 5 prints.
 ### [DANGER] Auto-rewire
 
 Rewrites the user's existing client configs in-place to route through
-`rust-mux-proxy`. Discipline:
+`rmcp-mux-proxy`. Discipline:
 
 1. Every eligible source gets a timestamped backup
    (`<file>.<unix_seconds>.bak`).
@@ -227,7 +227,7 @@ is dropped (the danger flow needs that for its `CONFIRM` prompt).
 ┌─Result──────────────────────────────────────────┐ ┌─Action─────────────┐
 │ Result                                          │ │ Tray daemon        │
 │                                                 │ │                    │
-│ Wrote rust-mux config under ~/.config/mux:      │ │ Run a multi-       │
+│ Wrote rmcp-mux config under ~/.config/mux:      │ │ Run a multi-       │
 │   - .../config.toml (daemon truth)              │ │ service tray       │
 │   - .../mcp.json    (client JSON)               │ │ monitor for the    │
 │   - .../mcp.toml    (client TOML)               │ │ sockets you just   │
@@ -244,7 +244,7 @@ is dropped (the danger flow needs that for its `CONFIRM` prompt).
 └─────────────────────────────────────────────────┘
 ```
 
-`Start tray daemon now` spawns `rust-mux --tray --config <generated>`
+`Start tray daemon now` spawns `rmcp-mux --tray --config <generated>`
 detached from this terminal (stdin/stdout/stderr → `/dev/null`). `No`
 exits cleanly. A persistent launchd-managed tray service is on the
 roadmap; today the spawn is per-session.
@@ -254,22 +254,22 @@ roadmap; today the spawn is per-session.
 The wizard's STEP 5 spawn is the convenience path. For long-running
 workflows you'll usually want one of:
 
-- `rust-mux --config ~/.config/mux/config.toml` — run the multi-service
+- `rmcp-mux --config ~/.config/mux/config.toml` — run the multi-service
   daemon in the foreground so you can see its logs.
-- `rust-mux --tray --config ~/.config/mux/config.toml` — same, with the
+- `rmcp-mux --tray --config ~/.config/mux/config.toml` — same, with the
   tray-icon UI; quit it from the menu.
-- `rust-mux daemon-status` (or `make daemon-status`) — query the
+- `rmcp-mux daemon-status` (or `make daemon-status`) — query the
   running multi-service daemon over its Unix socket and dump per-service
   status.
-- `rust-mux dashboard` (or `make dashboard`) — multi-service status
+- `rmcp-mux dashboard` (or `make dashboard`) — multi-service status
   view in the system tray, reading the daemon's status snapshots.
-- `rust-mux health --config ~/.config/mux/config.toml --service <name>`
+- `rmcp-mux health --config ~/.config/mux/config.toml --service <name>`
   — single-service socket reachability probe.
 
 ## CLI flags
 
 ```
-rust-mux wizard --config <PATH>         # mux daemon config (default ~/.codex/mcp-mux.toml)
+rmcp-mux wizard --config <PATH>         # mux daemon config (default ~/.codex/mcp-mux.toml)
                 --import-config <PATH>  # pre-load a custom MCP file as STEP 1 source (repeatable)
                 --dry-run               # plan everything, write nothing
 ```
@@ -301,7 +301,7 @@ and ignored by the 5-step flow.
   was either invalid or ineligible).
 
 - **Tray daemon spawn says "Could not start … run manually".** Either
-  `rust-mux` isn't on `$PATH` or the config file you pointed at doesn't
+  `rmcp-mux` isn't on `$PATH` or the config file you pointed at doesn't
   exist. `cargo install --path .` (or copy the release binary onto
   your `$PATH`) and try again.
 
