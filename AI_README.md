@@ -2,7 +2,7 @@
 
 > **Version:** 0.4.0
 > **Last updated:** 2026-05-05
-> **Per-repo doctrine:** see `.vibecrafted/GUIDELINES.md` (canonical, agent-agnostic)
+> **Per-repo doctrine:** see `AGENTS.md` (canonical, agent-agnostic)
 
 This document provides a concise technical overview for AI agents working with the rust-mux codebase.
 
@@ -56,7 +56,7 @@ cargo build --release
 rust-mux-proxy --socket ~/.rmcp-servers/rust-mux/sockets/memory.sock
 ```
 
-The canonical command surface is the `Makefile`. Use `make gates` before every commit; see `.vibecrafted/GUIDELINES.md` for the full target list.
+The canonical command surface is the `Makefile`. Use `make gates` before every commit; see `AGENTS.md` for the full target list.
 
 ## Project Structure (v0.4.0)
 
@@ -275,7 +275,7 @@ CI (`.github/workflows/ci.yml`) runs with `--no-default-features` (tray off) so 
 
 ## Notes for AI Agents
 
-1. **Read `.vibecrafted/GUIDELINES.md` first.** It is the canonical per-repo doctrine (Living Tree convention, commit format, AGENT FAIRNESS, anti-patterns). This file is reference material; GUIDELINES is the contract.
+1. **Read `AGENTS.md` first.** It is the canonical per-repo doctrine (Living Tree convention, commit format, AGENT FAIRNESS, anti-patterns). This file is reference material; GUIDELINES is the contract.
 
 2. **Library-first architecture.** Use `MuxConfig` + `spawn_mux_server` for embedding. CLI is feature-gated.
 
@@ -304,4 +304,4 @@ CI (`.github/workflows/ci.yml`) runs with `--no-default-features` (tray off) so 
 
 11. **Prefer `rust-mux-proxy` over `socat`** for host STDIO integration — it's the supported bridge.
 
-12. **`.ai-agents/**` is scratch space.** Do not commit. Root-level `AGENTS.md` (if present) is deprecated; ignore it. The canonical per-repo source is `.vibecrafted/GUIDELINES.md`.
+12. **`.ai-agents/**` is scratch space.** Do not commit. Root-level `AGENTS.md` (if present) is deprecated; ignore it. The canonical per-repo source is `AGENTS.md`.

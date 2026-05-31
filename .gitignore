@@ -9,6 +9,7 @@ Cargo.lock
 # at the per-day artifact root in $HOME). Ignore everything else (tmp scratch,
 # generated prompts, ad-hoc files).
 /.vibecrafted/*
-!/.vibecrafted/GUIDELINES.md
+!/AGENTS.md
 !/.vibecrafted/plans
 !/.vibecrafted/reports
+/.loctree

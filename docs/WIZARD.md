@@ -310,7 +310,7 @@ and ignored by the 5-step flow.
 - `docs/integration.md` — library use of `MuxConfig` / `spawn_mux_server`.
 - `docs/vc-agents-client-discovery-plan.md` — original plan for the
   multi-client discovery layer this wizard now consumes.
-- `.vibecrafted/GUIDELINES.md` — repo-wide doctrine, including the
+- `AGENTS.md` — repo-wide doctrine, including the
   wizard's Unified / Per-client / Auto-rewire split.
 
 ---

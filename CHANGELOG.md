@@ -109,7 +109,7 @@ already defaulted false in 0.4.2.
     public discovery surface.
   - `config` checked file-read/copy helpers that reject parent
     traversal at the filesystem boundary.
-- New canonical doc surfaces: `.vibecrafted/GUIDELINES.md` (per-repo,
+- New canonical doc surfaces: `AGENTS.md` (per-repo,
   agent-agnostic doctrine) and a fully rewritten `docs/WIZARD.md`.
 
 ### Changed
@@ -151,7 +151,7 @@ already defaulted false in 0.4.2.
 - Audited dependency tree for the `tray` feature: 0 vulnerabilities, 1
   unsoundness (glib 0.18.5 RUSTSEC-2024-0429, not on rust-mux's call
   graph) and 8 unmaintained advisories (GTK3 stack via tray-icon).
-  Tracked in `.vibecrafted/GUIDELINES.md` under "Tray feature
+  Tracked in `AGENTS.md` under "Tray feature
   dependency risks". CI mitigation: `--no-default-features`.
 - `config::checked_read_to_string` and `checked_copy` helpers reject
   parent-traversal paths and canonicalise filesystem boundaries; used
