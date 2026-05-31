@@ -55,10 +55,12 @@ fn unique_tmp_path(target: &Path) -> PathBuf {
 /// The target is replaced only after the full contents land in the tmp path.
 /// If the final rename fails, the previous target remains in place and the
 /// tmp file is removed on a best-effort basis.
+#[cfg_attr(not(feature = "cli"), allow(dead_code))]
 pub(crate) fn atomic_write(target: &Path, content: &[u8]) -> std::io::Result<()> {
     atomic_write_with_rename(target, content, |tmp, target| std_fs::rename(tmp, target))
 }
 
+#[cfg_attr(not(feature = "cli"), allow(dead_code))]
 fn atomic_write_with_rename<F>(target: &Path, content: &[u8], rename: F) -> std::io::Result<()>
 where
     F: FnOnce(&Path, &Path) -> std::io::Result<()>,

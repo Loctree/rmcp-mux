@@ -125,6 +125,8 @@ fn test_state_with_max(max: usize) -> Arc<Mutex<MuxState>> {
         max_restarts: 5,
         queue_depth: 0,
         child_pid: None,
+        #[cfg(feature = "cli")]
+        event_tx: None,
     })))
 }
 
