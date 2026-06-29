@@ -2,7 +2,7 @@
 name = "rust-mux"
 version = "0.1.5"
 edition = "2021"
-authors = ["Maciej Gad <void@div0.space>", "Monika Szymanska <hello@vetcoders.io>"]
+authors = ["vetcoders <hello@vetcoders.io>"]
 description = "Transport multiplexer for Rust MCP servers — tray, proxy, and runtime supervisor"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Loctree/rust-mux"
