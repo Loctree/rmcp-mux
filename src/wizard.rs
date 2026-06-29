@@ -325,11 +325,9 @@ fn handle_key(app: &mut AppState, key: crossterm::event::KeyEvent) -> Result<boo
                 app.editing = Some(app.current);
             }
         }
-        KeyCode::Char(' ') => {
-            if app.current == Field::Tray {
-                app.form.tray = !app.form.tray;
-                app.form.dirty = true;
-            }
+        KeyCode::Char(' ') if app.current == Field::Tray => {
+            app.form.tray = !app.form.tray;
+            app.form.dirty = true;
         }
         KeyCode::Esc => {
             app.editing = None;
