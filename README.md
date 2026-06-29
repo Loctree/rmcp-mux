@@ -21,7 +21,7 @@ Binaries live in `target/release/rust_mux`.
 
 ## Install (curl | sh)
 ```
-curl -fsSL https://raw.githubusercontent.com/LibraxisAI/rust_mux/main/tools/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Loctree/rust-mux/main/tools/install.sh | sh
 ```
 - Places wrapper in `$HOME/.local/bin/rust_mux` and ensures PATH contains cargo bin + wrapper dir.
 - Env overrides: `INSTALL_DIR`, `CARGO_HOME`, `MUX_REF` (branch/tag, default main), `MUX_NO_LOCK=1` to skip `--locked`.
