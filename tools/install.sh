@@ -4,7 +4,7 @@ umask 022
 
 # rust_mux install script
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/LibraxisAI/rust_mux/main/tools/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Loctree/rust-mux/main/tools/install.sh | sh
 # Env overrides:
 #   INSTALL_DIR   where to place the runnable `rust_mux` wrapper (default: $HOME/.local/bin)
 #   CARGO_HOME    override cargo home (default: ~/.cargo)
@@ -14,7 +14,7 @@ umask 022
 INSTALL_DIR=${INSTALL_DIR:-"$HOME/.local/bin"}
 CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"}
 CARGO_BIN="$CARGO_HOME/bin"
-REPO_URL="https://github.com/LibraxisAI/rust_mux"
+REPO_URL="https://github.com/Loctree/rust-mux"
 # Allow pinning a branch/tag/commit; defaults to main.
 MUX_REF=${MUX_REF:-"main"}
 

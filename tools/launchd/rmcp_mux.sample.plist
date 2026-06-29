@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.libraxis.mcp-mux.general-memory</string>
+  <string>com.loctree.rust-mux.general-memory</string>
 
   <!-- Adjust paths below to your environment -->
   <key>ProgramArguments</key>
